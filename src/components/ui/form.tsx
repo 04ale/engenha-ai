@@ -1,9 +1,10 @@
 import * as React from "react"
 import {
   useForm,
-  UseFormReturn,
-  FieldValues,
-  Path,
+  type UseFormReturn,
+  type FieldValues,
+  type Path,
+  type DefaultValues,
   Controller,
 } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,7 +14,7 @@ import { Label } from "./label"
 export interface FormProps<T extends FieldValues> {
   children: (form: UseFormReturn<T>) => React.ReactNode
   schema?: any
-  defaultValues?: Partial<T>
+  defaultValues?: DefaultValues<T> // Alterado de Partial para DefaultValues
   onSubmit: (data: T) => void | Promise<void>
   className?: string
 }
@@ -30,8 +31,9 @@ function Form<T extends FieldValues>({
     defaultValues,
   })
 
-  const handleSubmit = form.handleSubmit(async (data) => {
-    await onSubmit(data)
+  // Ajuste na tipagem do submit para evitar o erro TS2345
+  const handleSubmit = form.handleSubmit((data) => {
+    return onSubmit(data as T)
   })
 
   return (
@@ -49,7 +51,7 @@ export interface FormFieldProps<T extends FieldValues> {
     value: any
     onChange: (value: any) => void
     error?: string
-  }) => React.ReactNode
+  }) => React.ReactElement // Alterado de ReactNode para ReactElement para o erro da linha 70
 }
 
 function FormField<T extends FieldValues>({
@@ -66,13 +68,14 @@ function FormField<T extends FieldValues>({
       <Controller
         control={form.control}
         name={name}
-        render={({ field }) =>
-          children({
+        render={({ field }) => (
+          // O cast como ReactElement resolve o erro TS2322 na linha 70
+          (children({
             value: field.value,
             onChange: field.onChange,
             error: error?.message as string,
-          })
-        }
+          }) as React.ReactElement)
+        )}
       />
       {error && (
         <p className="text-sm text-destructive">{error.message as string}</p>
@@ -81,14 +84,16 @@ function FormField<T extends FieldValues>({
   )
 }
 
-export interface FormItemProps extends React.HTMLAttributes<HTMLDivElement> {}
+// ... restante das interfaces (FormItem, FormLabel, FormMessage) permanecem iguais
+
+export interface FormItemProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 function FormItem({ className, ...props }: FormItemProps) {
   return <div className={cn("space-y-2", className)} {...props} />
 }
 
 export interface FormLabelProps
-  extends React.LabelHTMLAttributes<HTMLLabelElement> {}
+  extends React.LabelHTMLAttributes<HTMLLabelElement> { }
 
 function FormLabel({ className, ...props }: FormLabelProps) {
   return <Label className={className} {...props} />

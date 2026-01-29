@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, FileText, Building2, Upload } from "lucide-react"
+import { FileText, Building2, Upload } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 export function QuickActions() {

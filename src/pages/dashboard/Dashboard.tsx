@@ -118,7 +118,7 @@ export default function DashboardPage() {
         <MetricCard
           title="Total de Obras"
           description="Obras cadastradas"
-          value={metrics?.totalObras}
+          value={metrics?.totalObras ?? 0}
           icon={Building2}
           loading={loading}
           trend={obrasTrend}
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         <MetricCard
           title="Total de Acervos"
           description="Acervos técnicos"
-          value={metrics?.totalAcervos}
+          value={metrics?.totalAcervos ?? 0}
           icon={FileText}
           loading={loading}
           trend={acervosTrend}
@@ -140,7 +140,7 @@ export default function DashboardPage() {
         <MetricCard
           title="CATs Registrados"
           description="Certidões anexadas"
-          value={metrics?.totalCATs}
+          value={metrics?.totalCATs ?? 0}
           icon={FileCheck}
           loading={loading}
           onClick={() => handleCardClick("cats")}
@@ -151,8 +151,8 @@ export default function DashboardPage() {
           value={
             metrics?.valorTotalExecutado
               ? `R$ ${metrics.valorTotalExecutado.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}`
+                minimumFractionDigits: 2,
+              })}`
               : null
           }
           icon={DollarSign}
@@ -182,10 +182,10 @@ export default function DashboardPage() {
             dialogOpen.type === "obras"
               ? "Todas as Obras"
               : dialogOpen.type === "acervos"
-              ? "Todos os Acervos Técnicos"
-              : dialogOpen.type === "cats"
-              ? "Acervos com CAT Registrado"
-              : "Detalhamento de Valores"
+                ? "Todos os Acervos Técnicos"
+                : dialogOpen.type === "cats"
+                  ? "Acervos com CAT Registrado"
+                  : "Detalhamento de Valores"
           }
           type={dialogOpen.type}
           data={dialogData}

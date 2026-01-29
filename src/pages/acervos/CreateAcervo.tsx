@@ -28,7 +28,7 @@ export default function CreateAcervoPage() {
       let arquivo_cat_nome = acervoData.arquivo_cat_nome
 
       if (catFile) {
-        const { url, path } = await storageService.uploadCAT(
+        const { url } = await storageService.uploadCAT(
           catFile,
           user.workspace_id,
           "temp" // Será atualizado após criar o acervo
@@ -53,7 +53,7 @@ export default function CreateAcervoPage() {
       // Se houver arquivo, atualizar com o ID correto do acervo
       if (catFile && arquivo_cat_url) {
         // Re-upload com nome correto
-        const { url, path } = await storageService.uploadCAT(
+        const { url } = await storageService.uploadCAT(
           catFile,
           user.workspace_id,
           acervo.id
@@ -61,6 +61,11 @@ export default function CreateAcervoPage() {
         await acervoService.update(
           acervo.id,
           {
+            descricao_obra: acervoData.descricao_obra,
+            cidade: acervoData.cidade,
+            estado: acervoData.estado,
+            data_inicio: acervoData.data_inicio,
+            acervo_tipo: acervoData.acervo_tipo,
             arquivo_cat_url: url,
             arquivo_cat_nome: catFile.name,
           },

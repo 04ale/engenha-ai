@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Stepper } from "@/components/ui/stepper"
@@ -38,7 +38,7 @@ export function StepForm({
 
   const handleNext = () => {
     const currentStepData = steps[currentStep]
-    
+
     // Validar passo atual se houver validação
     if (currentStepData.validation) {
       const isValid = currentStepData.validation()
@@ -68,7 +68,7 @@ export function StepForm({
     await onSubmit()
   }
 
-  const canGoNext = currentStep < steps.length - 1
+  // const canGoNext = currentStep < steps.length - 1
   const canGoPrevious = currentStep > 0
   const isLastStep = currentStep === steps.length - 1
 

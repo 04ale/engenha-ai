@@ -39,6 +39,7 @@ const DropdownMenu = ({
     <div className="relative" data-dropdown-menu>
       <div onClick={() => setOpen(!open)}>{trigger}</div>
       {open && (
+        // O alinhamento real acontece aqui na div que envolve o children
         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background border border-border z-50">
           {children}
         </div>
@@ -47,16 +48,21 @@ const DropdownMenu = ({
   )
 }
 
-const DropdownMenuContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("py-1", className)}
-    {...props}
-  />
-))
+// 1. Criamos a interface para aceitar 'align'
+export interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  align?: "start" | "center" | "end"
+}
+
+const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
+  ({ className, align = "start", ...props }, ref) => (
+    <div
+      ref={ref}
+      // 2. Você pode usar a prop 'align' para aplicar classes de CSS se desejar
+      className={cn("py-1", className)}
+      {...props}
+    />
+  )
+)
 DropdownMenuContent.displayName = "DropdownMenuContent"
 
 const DropdownMenuItem = React.forwardRef<

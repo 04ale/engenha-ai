@@ -5,14 +5,12 @@ import { cn } from "@/lib/utils"
 export interface SheetProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  side?: "left" | "right" | "top" | "bottom"
   children: React.ReactNode
 }
 
 const Sheet = ({
   open,
   onOpenChange,
-  side = "left",
   children,
 }: SheetProps) => {
   React.useEffect(() => {
@@ -28,49 +26,59 @@ const Sheet = ({
 
   if (!open) return null
 
-  const sideClasses = {
-    left: "left-0 top-0 h-full border-r",
-    right: "right-0 top-0 h-full border-l",
-    top: "top-0 left-0 w-full border-b",
-    bottom: "bottom-0 left-0 w-full border-t",
-  }
-
   return (
     <div
       className="fixed inset-0 z-50 flex"
       onClick={() => onOpenChange?.(false)}
     >
       <div className="fixed inset-0 bg-black/50" />
-      <div
-        className={cn(
-          "fixed z-50 bg-background p-6 shadow-lg transition-transform",
-          sideClasses[side]
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   )
 }
 
-const SheetContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { onClose?: () => void }
->(({ className, children, onClose, ...props }, ref) => (
-  <div ref={ref} className={cn("relative", className)} {...props}>
-    {onClose && (
-      <button
-        onClick={onClose}
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+// Criamos uma interface para o Content aceitar o 'side'
+export interface SheetContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  side?: "left" | "right" | "top" | "bottom"
+  onClose?: () => void
+}
+
+const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
+  ({ className, children, onClose, side = "left", ...props }, ref) => {
+
+    // As classes de posicionamento agora ficam aqui dentro
+    const sideClasses = {
+      left: "left-0 top-0 h-full border-r w-64",
+      right: "right-0 top-0 h-full border-l w-64",
+      top: "top-0 left-0 w-full border-b h-64",
+      bottom: "bottom-0 left-0 w-full border-t h-64",
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "fixed z-50 bg-background p-6 shadow-lg transition-transform",
+          sideClasses[side],
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+        {...props}
       >
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </button>
-    )}
-    {children}
-  </div>
-))
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+        )}
+        {children}
+      </div>
+    )
+  }
+)
 SheetContent.displayName = "SheetContent"
 
 const SheetHeader = ({

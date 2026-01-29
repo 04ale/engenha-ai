@@ -7,8 +7,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import type { Acervo } from "@/types/acervo"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -62,7 +60,7 @@ export function AcervosTable({
         </TableHeader>
         <TableBody>
           {acervos.map((acervo) => (
-            <TableRow 
+            <TableRow
               key={acervo.id}
               className="hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => onView(acervo)}

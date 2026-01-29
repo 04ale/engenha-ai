@@ -51,7 +51,7 @@ export default function EditAcervoPage() {
 
       // Upload do arquivo CAT se houver novo arquivo
       if (catFile) {
-        const { url, path } = await storageService.uploadCAT(
+        const { url } = await storageService.uploadCAT(
           catFile,
           user.workspace_id,
           id

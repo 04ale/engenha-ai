@@ -8,7 +8,7 @@ export const storageService = {
     acervoId: string
   ): Promise<{ url: string; path: string }> {
     await delay(1000) // Simular upload
-    
+
     // Criar URL de objeto local para preview
     const objectUrl = URL.createObjectURL(file)
     const filePath = `${workspaceId}/${acervoId}-${Date.now()}-${file.name}`
@@ -26,7 +26,7 @@ export const storageService = {
     return `https://example.com/storage/${filePath}`
   },
 
-  async deleteFile(filePath: string): Promise<void> {
+  async deleteFile(_filePath: string): Promise<void> {
     await delay(200)
     // Simular deleção
   },

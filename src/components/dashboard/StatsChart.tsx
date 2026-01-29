@@ -155,12 +155,7 @@ export function ValueChart({
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "0.5rem",
               }}
-              formatter={(value: number) => [
-                `R$ ${value.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}`,
-                "Valor",
-              ]}
+              formatter={(value: number | undefined) => [value?.toString() || "0", "Valor"]}
             />
             <Bar
               dataKey="valor"
