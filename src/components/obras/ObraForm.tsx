@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { Loader2 } from "lucide-react"
 import type { Obra } from "@/types/obra"
+import { useAuth } from "@/contexts/AuthContext"
+import { obraService } from "@/services/obraService"
+import { toast } from "sonner"
 
 interface ObraFormProps {
   obra?: Obra
@@ -18,44 +20,68 @@ interface ObraFormProps {
   isLoading?: boolean
 }
 
-export function ObraForm({ obra, onSubmit, onCancel, isLoading = false }: ObraFormProps) {
+export function ObraForm({ obra, onSubmit, onCancel, isLoading: externalLoading = false }: ObraFormProps) {
+  const { user } = useAuth()
   const form = useForm<ObraInput>({
     resolver: zodResolver(obraSchema),
     defaultValues: obra
       ? {
-          descricao_obra: obra.descricao_obra,
-          finalidade: obra.finalidade || "",
-          observacoes: obra.observacoes || "",
-          cidade: obra.cidade,
-          estado: obra.estado,
-          endereco_obra: obra.endereco_obra || "",
-          data_inicio: obra.data_inicio,
-          data_conclusao: obra.data_conclusao || "",
-          contratante_nome: obra.contratante_nome || "",
-          contratante_tipo: obra.contratante_tipo || undefined,
-          contratante_cnpj: obra.contratante_cnpj || "",
-          numero_contrato: obra.numero_contrato || "",
-          valor_total: obra.valor_total || undefined,
-        }
+        descricao_obra: obra.descricao_obra,
+        finalidade: obra.finalidade || "",
+        observacoes: obra.observacoes || "",
+        cidade: obra.cidade,
+        estado: obra.estado,
+        endereco_obra: obra.endereco_obra || "",
+        data_inicio: obra.data_inicio,
+        data_conclusao: obra.data_conclusao || "",
+        contratante_nome: obra.contratante_nome || "",
+        contratante_tipo: obra.contratante_tipo || undefined,
+        contratante_cnpj: obra.contratante_cnpj || "",
+        numero_contrato: obra.numero_contrato || "",
+        valor_total: obra.valor_total || undefined,
+      }
       : {
-          descricao_obra: "",
-          finalidade: "",
-          observacoes: "",
-          cidade: "",
-          estado: "",
-          endereco_obra: "",
-          data_inicio: "",
-          data_conclusao: "",
-          contratante_nome: "",
-          contratante_tipo: undefined,
-          contratante_cnpj: "",
-          numero_contrato: "",
-          valor_total: undefined,
-        },
+        descricao_obra: "",
+        finalidade: "",
+        observacoes: "",
+        cidade: "",
+        estado: "",
+        endereco_obra: "",
+        data_inicio: "",
+        data_conclusao: "",
+        contratante_nome: "",
+        contratante_tipo: undefined,
+        contratante_cnpj: "",
+        numero_contrato: "",
+        valor_total: undefined,
+      },
   })
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    await onSubmit(data)
+    if (!user) {
+      toast.error("Usuário não autenticado")
+      return
+    }
+
+    try {
+      if (obra) {
+        await obraService.update(obra.id, data, user.workspace_id)
+        toast.success("Obra atualizada com sucesso!")
+      } else {
+        await obraService.create(
+          data,
+          user.id,
+          user.workspace_id,
+          user.id, // Assumindo user como engenheiro para MVP
+          user.workspace_id // Assumindo workspace como empresa para MVP
+        )
+        toast.success("Obra criada com sucesso!")
+      }
+      await onSubmit(data)
+    } catch (error) {
+      console.error(error)
+      toast.error("Erro ao salvar obra")
+    }
   })
 
   return (
@@ -262,8 +288,8 @@ export function ObraForm({ obra, onSubmit, onCancel, isLoading = false }: ObraFo
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button type="submit" disabled={externalLoading || form.formState.isSubmitting}>
+          {(externalLoading || form.formState.isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {obra ? "Salvar Alterações" : "Criar Obra"}
         </Button>
       </div>

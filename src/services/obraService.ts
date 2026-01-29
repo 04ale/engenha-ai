@@ -1,5 +1,5 @@
 import type { Obra, CreateObraInput, UpdateObraInput } from "@/types/obra"
-import { mockObras, mockDataHelpers } from "@/lib/mockData"
+import { supabase } from "@/lib/supabase/client"
 
 export interface ObrasFilters {
   cidade?: string
@@ -7,45 +7,50 @@ export interface ObrasFilters {
   search?: string
 }
 
-// Simular delay de API
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
 export const obraService = {
   async list(workspaceId: string, filters?: ObrasFilters): Promise<Obra[]> {
-    await delay(500) // Simular delay de rede
-
-    let obras = [...mockObras] // Criar cópia do array
+    let query = supabase
+      .from("obras")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
 
     if (filters?.cidade) {
-      obras = obras.filter((obra) =>
-        obra.cidade.toLowerCase().includes(filters.cidade!.toLowerCase())
-      )
+      query = query.ilike("cidade", `%${filters.cidade}%`)
     }
 
     if (filters?.estado) {
-      obras = obras.filter((obra) =>
-        obra.estado.toLowerCase() === filters.estado!.toLowerCase()
-      )
+      query = query.eq("estado", filters.estado)
     }
 
     if (filters?.search) {
-      const searchLower = filters.search.toLowerCase()
-      obras = obras.filter(
-        (obra) =>
-          obra.descricao_obra.toLowerCase().includes(searchLower) ||
-          obra.numero_contrato?.toLowerCase().includes(searchLower)
-      )
+      query = query.or(`descricao_obra.ilike.%${filters.search}%,numero_contrato.ilike.%${filters.search}%`)
     }
 
-    return obras.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Erro ao listar obras:", error)
+      throw new Error("Erro ao carregar obras")
+    }
+
+    return data || []
   },
 
   async getById(id: string, workspaceId: string): Promise<Obra | null> {
-    await delay(300)
-    return mockObras.find((obra) => obra.id === id) || null
+    const { data, error } = await supabase
+      .from("obras")
+      .select("*")
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+      .single()
+
+    if (error) {
+      console.error("Erro ao buscar obra:", error)
+      return null
+    }
+
+    return data
   },
 
   async create(
@@ -55,19 +60,24 @@ export const obraService = {
     engenheiroId: string,
     empresaId: string
   ): Promise<Obra> {
-    await delay(800)
-    const newObra: Obra = {
-      id: `obra-${Date.now()}`,
-      empresa_id: empresaId,
-      engenheiro_id: engenheiroId,
-      workspace_id: workspaceId,
-      created_by: userId,
-      ...input,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const { data, error } = await supabase
+      .from("obras")
+      .insert({
+        empresa_id: empresaId,
+        engenheiro_id: engenheiroId,
+        workspace_id: workspaceId,
+        created_by: userId,
+        ...input,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Erro ao criar obra:", error)
+      throw new Error("Erro ao criar obra")
     }
-    mockDataHelpers.addObra(newObra)
-    return newObra
+
+    return data
   },
 
   async update(
@@ -75,22 +85,35 @@ export const obraService = {
     input: UpdateObraInput,
     workspaceId: string
   ): Promise<Obra> {
-    await delay(600)
-    const obra = mockObras.find((obra) => obra.id === id)
-    if (!obra) {
-      throw new Error("Obra não encontrada")
+    const { data, error } = await supabase
+      .from("obras")
+      .update({
+        ...input,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Erro ao atualizar obra:", error)
+      throw new Error("Erro ao atualizar obra")
     }
-    const updatedObra = {
-      ...obra,
-      ...input,
-      updated_at: new Date().toISOString(),
-    }
-    mockDataHelpers.updateObra(id, updatedObra)
-    return updatedObra
+
+    return data
   },
 
   async delete(id: string, workspaceId: string): Promise<void> {
-    await delay(400)
-    mockDataHelpers.removeObra(id)
+    const { error } = await supabase
+      .from("obras")
+      .delete()
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+
+    if (error) {
+      console.error("Erro ao deletar obra:", error)
+      throw new Error("Erro ao deletar obra")
+    }
   },
 }

@@ -1,5 +1,5 @@
 import type { Acervo, CreateAcervoInput, UpdateAcervoInput } from "@/types/acervo"
-import { mockAcervos, mockItens, mockDataHelpers } from "@/lib/mockData"
+import { supabase } from "@/lib/supabase/client"
 
 export interface AcervosFilters {
   tipo?: string
@@ -9,63 +9,58 @@ export interface AcervosFilters {
   search?: string
 }
 
-// Simular delay de API
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
 export const acervoService = {
   async list(workspaceId: string, filters?: AcervosFilters): Promise<Acervo[]> {
-    await delay(500)
-
-    let acervos = [...mockAcervos].map((acervo) => ({
-      ...acervo,
-      itens: mockItens[acervo.id] || [],
-    })) // Criar cópia do array
+    let query = supabase
+      .from("acervos")
+      .select("*, itens:acervo_itens(*)")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
 
     if (filters?.tipo) {
-      acervos = acervos.filter((acervo) => acervo.acervo_tipo === filters.tipo)
+      query = query.eq("acervo_tipo", filters.tipo)
     }
 
     if (filters?.cidade) {
-      acervos = acervos.filter((acervo) =>
-        acervo.cidade.toLowerCase().includes(filters.cidade!.toLowerCase())
-      )
+      query = query.ilike("cidade", `%${filters.cidade}%`)
     }
 
     if (filters?.estado) {
-      acervos = acervos.filter((acervo) =>
-        acervo.estado.toLowerCase() === filters.estado!.toLowerCase()
-      )
+      query = query.eq("estado", filters.estado)
     }
 
     if (filters?.obra_id) {
-      acervos = acervos.filter((acervo) => acervo.obra_id === filters.obra_id)
+      query = query.eq("obra_id", filters.obra_id)
     }
 
     if (filters?.search) {
-      const searchLower = filters.search.toLowerCase()
-      acervos = acervos.filter(
-        (acervo) =>
-          acervo.descricao_obra.toLowerCase().includes(searchLower) ||
-          acervo.numero_art?.toLowerCase().includes(searchLower) ||
-          acervo.numero_contrato?.toLowerCase().includes(searchLower)
-      )
+      query = query.or(`descricao_obra.ilike.%${filters.search}%,numero_art.ilike.%${filters.search}%,numero_contrato.ilike.%${filters.search}%`)
     }
 
-    return acervos.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Erro ao listar acervos:", error)
+      throw new Error("Erro ao carregar acervos")
+    }
+
+    return data || []
   },
 
   async getById(id: string, workspaceId: string): Promise<Acervo | null> {
-    await delay(300)
-    const acervo = mockAcervos.find((acervo) => acervo.id === id)
-    if (!acervo) return null
+    const { data, error } = await supabase
+      .from("acervos")
+      .select("*, itens:acervo_itens(*)")
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+      .single()
 
-    return {
-      ...acervo,
-      itens: mockItens[id] || [],
+    if (error) {
+      console.error("Erro ao buscar acervo:", error)
+      return null
     }
+
+    return data
   },
 
   async create(
@@ -75,36 +70,46 @@ export const acervoService = {
     engenheiroId: string,
     empresaId: string
   ): Promise<Acervo> {
-    await delay(800)
     const { itens, ...acervoData } = input
-    const newId = `acervo-${Date.now()}`
-    
-    const newAcervo: Acervo = {
-      id: newId,
-      empresa_id: empresaId,
-      engenheiro_id: engenheiroId,
-      workspace_id: workspaceId,
-      created_by: userId,
-      ...acervoData,
-      obra_id: acervoData.obra_id || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      itens: [],
+
+    // 1. Criar Acervo
+    const { data: newAcervo, error: acervoError } = await supabase
+      .from("acervos")
+      .insert({
+        empresa_id: empresaId,
+        engenheiro_id: engenheiroId,
+        workspace_id: workspaceId,
+        created_by: userId,
+        ...acervoData,
+        obra_id: acervoData.obra_id || null, // Ensure explicit null if undefined
+      })
+      .select()
+      .single()
+
+    if (acervoError) {
+      console.error("Erro ao criar acervo:", acervoError)
+      throw new Error("Erro ao criar acervo")
     }
 
+    // 2. Inserir Itens se houver
     if (itens && itens.length > 0) {
-      const itensCompletos = itens.map((item, index) => ({
-        id: `item-${Date.now()}-${index}`,
-        acervo_id: newId,
+      const itensToInsert = itens.map((item) => ({
+        acervo_id: newAcervo.id,
         ...item,
-        created_at: new Date().toISOString(),
       }))
-      mockDataHelpers.setItens(newId, itensCompletos)
-      newAcervo.itens = itensCompletos
+
+      const { error: itemsError } = await supabase
+        .from("acervo_itens")
+        .insert(itensToInsert)
+
+      if (itemsError) {
+        console.error("Erro ao criar itens do acervo:", itemsError)
+        // Opcional: Rollback (delete acervo) se falhar itens, mas para MVP seguimos.
+      }
     }
 
-    mockDataHelpers.addAcervo(newAcervo)
-    return newAcervo
+    // Retornar acervo completo
+    return await this.getById(newAcervo.id, workspaceId) as Acervo
   },
 
   async update(
@@ -112,38 +117,62 @@ export const acervoService = {
     input: UpdateAcervoInput,
     workspaceId: string
   ): Promise<Acervo> {
-    await delay(600)
-    const acervo = mockAcervos.find((acervo) => acervo.id === id)
-    if (!acervo) {
-      throw new Error("Acervo não encontrado")
-    }
-
     const { itens, ...acervoData } = input
 
-    const updatedAcervo: Acervo = {
-      ...acervo,
-      ...acervoData,
-      updated_at: new Date().toISOString(),
+    // 1. Atualizar dados do Acervo
+    const { error: acervoError } = await supabase
+      .from("acervos")
+      .update({
+        ...acervoData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+
+    if (acervoError) {
+      console.error("Erro ao atualizar acervo:", acervoError)
+      throw new Error("Erro ao atualizar acervo")
     }
 
+    // 2. Atualizar itens se fornecidos (Substituição completa)
     if (itens !== undefined) {
-      const itensCompletos = itens.map((item, idx) => ({
-        id: `item-${Date.now()}-${idx}`,
-        acervo_id: id,
-        ...item,
-        created_at: new Date().toISOString(),
-      }))
-      mockDataHelpers.setItens(id, itensCompletos)
-      updatedAcervo.itens = itensCompletos
+      // Remover itens antigos
+      const { error: deleteError } = await supabase
+        .from("acervo_itens")
+        .delete()
+        .eq("acervo_id", id)
+
+      if (deleteError) throw deleteError
+
+      // Inserir novos itens
+      if (itens.length > 0) {
+        const itensToInsert = itens.map((item) => ({
+          acervo_id: id,
+          ...item,
+        }))
+
+        const { error: insertError } = await supabase
+          .from("acervo_itens")
+          .insert(itensToInsert)
+
+        if (insertError) throw insertError
+      }
     }
 
-    mockDataHelpers.updateAcervo(id, updatedAcervo)
-    return updatedAcervo
+    return await this.getById(id, workspaceId) as Acervo
   },
 
   async delete(id: string, workspaceId: string): Promise<void> {
-    await delay(400)
-    mockDataHelpers.removeAcervo(id)
+    const { error } = await supabase
+      .from("acervos")
+      .delete()
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
+
+    if (error) {
+      console.error("Erro ao deletar acervo:", error)
+      throw new Error("Erro ao deletar acervo")
+    }
   },
 
   async addItems(
@@ -157,30 +186,23 @@ export const acervoService = {
     }>,
     workspaceId: string
   ): Promise<Acervo> {
-    await delay(600)
-    const acervo = mockAcervos.find((acervo) => acervo.id === acervoId)
-    if (!acervo) {
-      throw new Error("Acervo não encontrado")
-    }
-
-    const existingItens = mockItens[acervoId] || []
-    const newItens = items.map((item, index) => ({
-      id: `item-${Date.now()}-${index}`,
+    const itensToInsert = items.map((item) => ({
       acervo_id: acervoId,
       ...item,
-      created_at: new Date().toISOString(),
     }))
 
-    const allItens = [...existingItens, ...newItens]
-    mockDataHelpers.setItens(acervoId, allItens)
+    const { error } = await supabase
+      .from("acervo_itens")
+      .insert(itensToInsert)
 
-    const updatedAcervo: Acervo = {
-      ...acervo,
-      itens: allItens,
-      updated_at: new Date().toISOString(),
+    if (error) {
+      console.error("Erro ao adicionar itens:", error)
+      throw new Error("Erro ao adicionar itens")
     }
 
-    mockDataHelpers.updateAcervo(acervoId, updatedAcervo)
-    return updatedAcervo
+    // Atualizar timestamp do acervo (opcional, mas boa prática)
+    await supabase.from("acervos").update({ updated_at: new Date().toISOString() }).eq("id", acervoId)
+
+    return await this.getById(acervoId, workspaceId) as Acervo
   },
 }
