@@ -2,27 +2,70 @@ import { supabase } from "@/lib/supabase/client";
 import type {
   RegisterInput,
   LoginInput,
-  ResetPasswordRequestInput,
+  ProfileInput,
   ResetPasswordConfirmInput,
+  ResetPasswordRequestInput,
 } from "@/lib/validations/auth";
 
 export interface User {
   id: string;
   email: string;
   nome_completo: string;
-  workspace_id: string;
+  workspace_id?: string;
   crea?: string;
   telefone?: string;
+  avatar_url?: string;
+  avatar_nome?: string;
+  is_public?: boolean;
 }
 
-const STORAGE_KEY = "app_user";
-
 export const authService = {
+  // --- LOGIN ---
+  async login(
+    data: LoginInput,
+  ): Promise<{ user: User | null; error: string | null }> {
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.senha,
+      });
+
+      if (authError) throw authError;
+
+      // Busca dados frescos
+      const user = await this.getCurrentUser();
+      return { user, error: null };
+    } catch (error: any) {
+      return { user: null, error: error.message };
+    }
+  },
+
+  // --- GOOGLE LOGIN ---
+  async loginWithGoogle() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // Redireciona para o painel após o Google dar o OK
+        redirectTo: `${window.location.origin}/app/dashboard`,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+
+    // Nota: O Google vai redirecionar o navegador para fora do seu site.
+    // O retorno dessa função só acontece se der erro antes de sair.
+    if (error) return { error: error.message };
+
+    return { data, error: null };
+  },
+
+  // --- REGISTER ---
   async register(
     data: RegisterInput,
   ): Promise<{ user: User | null; error: string | null }> {
     try {
-      // 1. Criar usuário no Auth (Passando os metadados para a Trigger usar)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.senha,
@@ -31,91 +74,32 @@ export const authService = {
             nome_completo: data.nome_completo,
             crea: data.crea,
             telefone: data.telefone,
+            is_public: false,
           },
         },
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
 
-      let userProfile = null;
-
-      if (authData.session) {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*, workspaces(*)")
-          .eq("id", authData.user.id)
-          .single();
-
-        if (!profileError && profileData) {
-          userProfile = {
-            id: authData.user.id,
-            email: data.email,
-            nome_completo: profileData.nome_completo,
-            workspace_id: profileData.workspace_id,
-            crea: profileData.crea,
-            telefone: profileData.telefone,
-          };
-
-          // Salvar no localStorage
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(userProfile));
-        }
-      }
-
-      return { user: userProfile, error: null };
-    } catch (error: any) {
-      console.error("Erro no registro:", error);
+      // Retorna usuário provisório (sem salvar no storage manual)
       return {
-        user: null,
-        error: error.message || "Erro ao registrar usuário",
-      };
-    }
-  },
-
-  async login(
-    data: LoginInput,
-  ): Promise<{ user: User | null; error: string | null }> {
-    try {
-      // 1. Login no Supabase Auth
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
+        user: {
+          id: authData.user?.id!,
           email: data.email,
-          password: data.senha,
-        });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao autenticar");
-
-      // 2. Buscar dados do profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authData.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      const user: User = {
-        id: authData.user.id,
-        email: authData.user.email!,
-        nome_completo: profileData.nome_completo,
-        workspace_id: profileData.workspace_id,
-        crea: profileData.crea,
-        telefone: profileData.telefone,
+          nome_completo: data.nome_completo,
+          workspace_id: undefined,
+          is_public: false,
+        },
+        error: null,
       };
-
-      // Atualizar localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-
-      return { user, error: null };
     } catch (error: any) {
-      return { user: null, error: error.message || "Erro ao fazer login" };
+      return { user: null, error: error.message };
     }
   },
 
+  // --- LOGOUT ---
   async logout(): Promise<void> {
     await supabase.auth.signOut();
-    localStorage.removeItem(STORAGE_KEY);
   },
 
   async requestPasswordReset(
@@ -136,40 +120,275 @@ export const authService = {
     return { error: error?.message || null };
   },
 
+  // --- GET CURRENT USER (A Limpeza) ---
   async getCurrentUser(): Promise<User | null> {
-    // 1. Tentar recuperar do localStorage (stratégia cache-first como solicitado)
-    const savedUser = localStorage.getItem(STORAGE_KEY);
-    if (savedUser) {
-      return JSON.parse(savedUser);
-    }
+    try {
+      // 1. Pergunta pro Supabase: "A sessão é válida?"
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-    // 2. Fallback: Se não houver no storage, tentar recuperar da sessão ativa do Supabase
-    // Isso é útil se o usuário limpar o cache ou abrir uma nova aba já logado
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) return null;
+      // Se não tem sessão ou deu erro, o usuário NÃO está logado. Ponto.
+      if (!session || error) return null;
 
-    // Buscar profile se tiver sessão
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
+      // 2. Se a sessão é válida, pega os dados do profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
 
-    if (profile) {
-      const user: User = {
-        id: session.user.id,
+      // 3. Fallback se o profile falhar (mas a sessão existe)
+      if (profileError || !profile) {
+        return {
+          id: session.user.id,
+          email: session.user.email!,
+          nome_completo: session.user.user_metadata.nome_completo || "Usuário",
+          workspace_id: undefined,
+          is_public: session.user.user_metadata.is_public ?? false,
+        };
+      }
+
+      return {
+        id: profile.id,
         email: session.user.email!,
         nome_completo: profile.nome_completo,
         workspace_id: profile.workspace_id,
         crea: profile.crea,
         telefone: profile.telefone,
+        avatar_url: profile.avatar_url,
+        avatar_nome: profile.avatar_nome,
+        is_public: profile.is_public,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      return user;
+    } catch (error) {
+      return null;
     }
+  },
 
-    return null;
+  // --- UPLOAD AVATAR ---
+  async uploadAvatar(
+    userId: string,
+    file: File,
+  ): Promise<{
+    url: string | null;
+    nome: string | null;
+    error: string | null;
+  }> {
+    try {
+      const fileExt = file.name.split(".").pop();
+      // Sanitize filename: use timestamp instead of random float
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatar")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from("avatar").getPublicUrl(filePath);
+
+      return { url: data.publicUrl, nome: fileName, error: null };
+    } catch (error: any) {
+      return { url: null, nome: null, error: error.message };
+    }
+  },
+  // --- DELETE AVATAR ---
+  async deleteAvatar(
+    userId: string,
+    avatarName: string,
+  ): Promise<{ error: string | null }> {
+    try {
+      // 1. Remove do Storage se existir nome
+      if (avatarName) {
+        const { error: storageError } = await supabase.storage
+          .from("avatar")
+          .remove([avatarName]);
+
+        if (storageError) {
+          console.error("Erro ao remover arquivo do storage:", storageError);
+          // Não paramos aqui, pois queremos limpar o registro no banco de qualquer jeito
+        }
+      }
+
+      // 2. Limpa no Profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: null,
+          avatar_nome: null,
+        })
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+
+      // 3. Sincroniza com Engenheiros
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      const userEmail = authUser?.email;
+
+      if (userEmail) {
+        const { data: engenheiroExistente } = await supabase
+          .from("engenheiros")
+          .select("id")
+          .eq("email", userEmail)
+          .single();
+
+        if (engenheiroExistente) {
+          const { error: engError } = await supabase
+            .from("engenheiros")
+            .update({
+              avatar_url: null,
+              avatar_name: null,
+            })
+            .eq("id", engenheiroExistente.id);
+
+          if (engError)
+            console.error("Erro ao limpar avatar engenheiro:", engError);
+        }
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  },
+
+  // --- UPDATE PROFILE ---
+
+  async updateProfile(
+    userId: string,
+    data: ProfileInput,
+  ): Promise<{ user: User | null; error: string | null }> {
+    try {
+      // 1. Atualizar Profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          nome_completo: data.nome_completo,
+          crea: data.crea,
+          telefone: data.telefone,
+          avatar_url: data.avatar_url,
+          avatar_nome: data.avatar_nome,
+        })
+        .eq("id", userId)
+        .select()
+        .single();
+
+      if (profileError) throw profileError;
+
+      // 2. Tentar atualizar Engenheiros (Sincronização)
+      // Primeiro pegamos o email do usuário para encontrar o engenheiro correto
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      const userEmail = authUser?.email;
+
+      if (userEmail) {
+        // Verifica se existe um engenheiro com esse email
+        const { data: engenheiroExistente } = await supabase
+          .from("engenheiros")
+          .select("id")
+          .eq("email", userEmail)
+          .single();
+
+        if (engenheiroExistente) {
+          const { error: engError } = await supabase
+            .from("engenheiros")
+            .update({
+              nome: data.nome_completo, // Nome da coluna é 'nome'
+              crea: data.crea,
+              telefone: data.telefone,
+              avatar_url: data.avatar_url,
+              avatar_name: data.avatar_nome, // Nome da coluna é 'avatar_name'
+            })
+            .eq("id", engenheiroExistente.id); // Validar pelo ID encontrado
+
+          if (engError)
+            console.error("Erro ao sincronizar engenheiro:", engError);
+        }
+      }
+
+      const updatedUser: User = {
+        id: userId,
+        email: authUser?.email || "",
+        nome_completo: profileData.nome_completo,
+        workspace_id: profileData.workspace_id,
+        crea: profileData.crea,
+        telefone: profileData.telefone,
+        avatar_url: profileData.avatar_url,
+        avatar_nome: profileData.avatar_nome,
+        is_public: profileData.is_public,
+      };
+
+      return { user: updatedUser, error: null };
+    } catch (error: any) {
+      return { user: null, error: error.message };
+    }
+  },
+
+  // --- UPDATE PUBLIC STATUS ---
+  async updatePublicStatus(
+    userId: string,
+    isPublic: boolean,
+  ): Promise<{ user: User | null; error: string | null }> {
+    try {
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .update({ is_public: isPublic })
+        .eq("id", userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Sincroniza com Engenheiros
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      const userEmail = authUser?.email;
+
+      if (userEmail) {
+        const { data: engenheiroExistente } = await supabase
+          .from("engenheiros")
+          .select("id")
+          .eq("email", userEmail)
+          .single();
+
+        if (engenheiroExistente) {
+          const { error: engenheiroError } = await supabase
+            .from("engenheiros")
+            .update({ is_public: isPublic })
+            .eq("id", engenheiroExistente.id);
+
+          if (engenheiroError)
+            console.error(
+              "Erro ao sincronizar public engenheiro:",
+              engenheiroError,
+            );
+        }
+      }
+
+      // Fetch current user data to return a complete User object
+      const currentUser = await this.getCurrentUser();
+
+      if (!currentUser)
+        return { user: null, error: "Usuário não encontrado após atualização" };
+
+      return {
+        user: { ...currentUser, is_public: profileData.is_public },
+        error: null,
+      };
+    } catch (error: any) {
+      console.error("Erro ao alterar status publico:", error);
+      return { user: null, error: error.message };
+    }
   },
 };

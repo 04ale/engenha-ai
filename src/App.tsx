@@ -3,6 +3,7 @@ import { Toaster } from "sonner"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/components/providers/ThemeProvider"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { AuthCallback } from "@/pages/auth/AuthCallback"
 import LoginPage from "@/pages/auth/Login"
 import RegisterPage from "@/pages/auth/Register"
 import DashboardPage from "@/pages/dashboard/Dashboard"
@@ -16,6 +17,7 @@ import AcervoDetailsPage from "@/pages/acervos/AcervoDetails"
 import ObraDetailsPage from "@/pages/obras/ObraDetails"
 import ListEmpresasPage from "./pages/empresas/ListEmpresa"
 import CreateEmpresaPage from "./pages/empresas/CreateEmpresa"
+import UserProfilePage from "@/pages/profile/UserProfile"
 
 function App() {
 
@@ -26,6 +28,7 @@ function App() {
           <Routes>
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/register" element={<RegisterPage />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route
               path="/app/*"
               element={
@@ -42,6 +45,8 @@ function App() {
                     <Route path="acervos/:id/editar" element={<EditAcervoPage />} />
                     <Route path="empresas" element={<ListEmpresasPage />} />
                     <Route path="empresas/novo" element={<CreateEmpresaPage />} />
+                    <Route path="empresas/:id/editar" element={<CreateEmpresaPage />} />
+                    <Route path="perfil" element={<UserProfilePage />} />
                     <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
                   </Routes>
                 </ProtectedRoute>

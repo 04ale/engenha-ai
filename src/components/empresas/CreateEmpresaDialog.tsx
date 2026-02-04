@@ -90,18 +90,7 @@ export function CreateEmpresaDialog({
             setValue("nome", data.nome || "")
             setValue("email", data.email || "")
             setValue("telefone", data.telefone || "")
-
-            const enderecoCompleto = [
-                data.logradouro,
-                data.numero,
-                data.bairro,
-                data.municipio,
-                data.uf,
-            ]
-                .filter(Boolean)
-                .join(", ")
-
-            setValue("endereco", enderecoCompleto)
+            setValue("endereco", data.endereco || "")
 
             toast.success("Dados da empresa carregados com sucesso!")
         } catch (error) {

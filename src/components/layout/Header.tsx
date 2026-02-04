@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, ChevronDown } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -46,9 +46,13 @@ export function Header() {
               className="rounded-full gap-2 hover:bg-accent"
             >
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {initials}
-                </AvatarFallback>
+                {user?.avatar_url ? (
+                  <AvatarImage src={user.avatar_url} className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.nome_completo?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <span className="hidden md:block text-sm font-medium">{user?.nome_completo}</span>
               <ChevronDown className={cn(
@@ -65,7 +69,7 @@ export function Header() {
                   </div>
                   <button
                     onClick={() => {
-                      navigate("/app/dashboard")
+                      navigate("/app/perfil")
                       setShowMenu(false)
                     }}
                     className="w-full px-4 py-2 text-sm text-left hover:bg-accent hover:text-accent-foreground flex items-center gap-2 transition-colors"
@@ -89,12 +93,14 @@ export function Header() {
           </div>
         </div>
       </div>
-      {showMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowMenu(false)}
-        />
-      )}
-    </header>
+      {
+        showMenu && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowMenu(false)}
+          />
+        )
+      }
+    </header >
   )
 }

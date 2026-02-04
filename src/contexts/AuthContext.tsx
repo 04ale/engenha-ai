@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase/client" // <--- 1. Importação nova
+import { supabase } from "@/lib/supabase/client"
 import { authService, type User } from "@/services/authService"
 
 interface AuthContextType {
@@ -16,6 +16,7 @@ interface AuthContextType {
     telefone?: string
   }) => Promise<void>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -24,73 +25,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Função auxiliar para buscar usuário (usada no load e nos eventos)
-  const checkUser = async () => {
+  const checkUser = async (retryCount = 0) => {
     try {
-      const currentUser = await authService.getCurrentUser()
-      setUser(currentUser)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      let currentUser = await authService.getCurrentUser();
+
+      if (currentUser) {
+        console.log("✅ Usuário carregado com sucesso:", currentUser.email);
+        setUser(currentUser);
+        setLoading(false);
+      } else {
+        if (retryCount < 5) {
+          console.warn(`⚠️ Perfil não encontrado. Tentativa ${retryCount + 1}/5...`);
+          setTimeout(() => {
+            checkUser(retryCount + 1);
+          }, 500);
+          return;
+        }
+
+        console.error("❌ Esgotou tentativas de buscar perfil.");
+        setUser(null);
+        setLoading(false);
+      }
+
     } catch (error) {
-      setUser(null)
-    } finally {
-      setLoading(false)
+      console.error("Erro no checkUser:", error);
+      setUser(null);
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    // 1. Verificação inicial (ao carregar a página)
-    checkUser()
-
-    // 2. Ouvinte de Eventos do Supabase (AQUI ESTÁ A MÁGICA)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔔 Auth Event:", event)
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        // Se o Supabase diz que logou ou renovou token, garantimos que temos os dados do perfil atualizados
-        if (session) {
-          await checkUser()
-        }
-      }
-
-      if (event === 'SIGNED_OUT') {
-        // Se deslogou (ou token expirou), limpamos tudo na hora
-        setUser(null)
-        setLoading(false)
-        localStorage.removeItem("app_user") // Garante a limpeza do cache manual
-      }
-    })
-
-    // Cleanup: remove o ouvinte quando o componente desmontar
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
+    checkUser();
+  }, []);
 
   const login = async (email: string, senha: string) => {
-    const { user: loggedUser, error } = await authService.login({ email, senha })
+    const { error } = await authService.login({ email, senha });
+
     if (error) {
-      throw new Error(error)
+      throw new Error(error);
     }
-    setUser(loggedUser)
+    await checkUser(); // Refresh user after login
   }
 
-  const register = async (data: {
-    nome_completo: string
-    email: string
-    senha: string
-    confirmar_senha: string
-    crea: string
-    telefone?: string
-  }) => {
-    const { user: newUser, error } = await authService.register(data)
+  const register = async (data: any) => {
+    const { error } = await authService.register(data);
     if (error) {
-      throw new Error(error)
+      throw new Error(error);
     }
-    setUser(newUser)
+    await checkUser(); // Try to refresh user after register (though normally needs login)
   }
 
   const logout = async () => {
-    await authService.logout()
-    setUser(null)
+    await authService.logout();
+    setUser(null);
   }
 
   return (
@@ -101,7 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         login,
         register,
-        logout
+        logout,
+        refreshUser: () => checkUser()
       }}
     >
       {children}
