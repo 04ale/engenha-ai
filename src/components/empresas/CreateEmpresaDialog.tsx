@@ -78,6 +78,8 @@ export function CreateEmpresaDialog({
                 body: { cnpj },
             })
 
+            console.log(data)
+
             if (error) {
                 console.error("Erro na Edge Function:", error)
                 throw error

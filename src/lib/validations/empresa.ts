@@ -6,6 +6,7 @@ export const empresaSchema = z.object({
   endereco: z.string().optional(),
   telefone: z.string().optional(),
   email: z.string().email().optional(),
+  is_public: z.boolean().optional(),
 });
 
 export type EmpresaInput = z.infer<typeof empresaSchema>;

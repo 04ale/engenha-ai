@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Obra } from "@/types/obra"
 import { useEmpresas } from "@/hooks/useEmpresas"
 import { Button } from "../ui/button"
@@ -65,6 +65,17 @@ export function ObraFormStepByStep({
       },
     mode: "onChange",
   })
+
+  const contratanteNome = form.watch("contratante_nome")
+
+  useEffect(() => {
+    if (contratanteNome) {
+      const empresa = empresas.find(e => e.nome === contratanteNome)
+      if (empresa) {
+        form.setValue("contratante_cnpj", empresa.cnpj)
+      }
+    }
+  }, [contratanteNome, empresas, form])
 
   const handleSubmit = async () => {
     const isValid = await form.trigger()
@@ -252,6 +263,30 @@ export function ObraFormStepByStep({
                 >
                   Adicionar Empresa
                 </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contratante_tipo">Tipo</Label>
+                  <Select
+                    id="contratante_tipo"
+                    {...form.register("contratante_tipo")}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="pessoa_fisica">Pessoa Física</option>
+                    <option value="pessoa_juridica">Pessoa Jurídica</option>
+                    <option value="orgao_publico">Órgão Público</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contratante_cnpj">CNPJ/CPF</Label>
+                  <Input
+                    id="contratante_cnpj"
+                    {...form.register("contratante_cnpj")}
+                    placeholder="00.000.000/0000-00"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card >

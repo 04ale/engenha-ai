@@ -13,6 +13,7 @@ import { empresaService } from "@/services/empresaService"
 import { toast } from "sonner"
 import { empresaSchema, type EmpresaInput } from "@/lib/validations/empresa"
 import { Loader2, ArrowLeft, Save } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { supabase } from "@/lib/supabase/client"
 import { IMaskInput } from 'react-imask';
 
@@ -41,6 +42,7 @@ export default function CreateEmpresaPage() {
             email: "",
             telefone: "",
             endereco: "",
+            is_public: false,
         }
     })
 
@@ -56,6 +58,7 @@ export default function CreateEmpresaPage() {
                         setValue("email", empresa.email || "")
                         setValue("telefone", empresa.telefone || "")
                         setValue("endereco", empresa.endereco || "")
+                        setValue("is_public", empresa.is_public || false)
                     } else {
                         toast.error("Empresa não encontrada")
                         navigate("/app/empresas")
@@ -294,6 +297,22 @@ export default function CreateEmpresaPage() {
                                         )}
                                     </>
                                 )}
+                            </div>
+
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Controller
+                                    control={control}
+                                    name="is_public"
+                                    render={({ field }) => (
+                                        <Switch
+                                            id="is_public"
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            disabled={isLoadingData}
+                                        />
+                                    )}
+                                />
+                                <Label htmlFor="is_public">Empresa Pública</Label>
                             </div>
                         </CardContent>
                         <CardFooter className="flex justify-end gap-2">

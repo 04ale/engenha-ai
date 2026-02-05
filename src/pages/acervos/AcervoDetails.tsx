@@ -18,12 +18,15 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import type { Acervo } from "@/types/acervo"
 import type { CreateItemInput } from "@/types/item"
+import { obraService } from "@/services/obraService"
+import type { Obra } from "@/types/obra"
 
 export default function AcervoDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
   const [acervo, setAcervo] = useState<Acervo | null>(null)
+  const [obra, setObra] = useState<Obra | null>(null)
   const [loading, setLoading] = useState(true)
   const [showImportDialog, setShowImportDialog] = useState(false)
 
@@ -40,6 +43,11 @@ export default function AcervoDetailsPage() {
           return
         }
         setAcervo(acervoData)
+
+        if (acervoData.obra_id) {
+          const obraData = await obraService.getById(acervoData.obra_id, user.workspace_id)
+          setObra(obraData)
+        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erro ao carregar acervo")
         navigate("/app/acervos")
@@ -490,19 +498,39 @@ export default function AcervoDetailsPage() {
         />
 
         <TabsContent value="obra" className="space-y-4 mt-6">
-          {acervo.obra_id ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Obra Relacionada
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Este acervo está vinculado a uma obra. Para ver os detalhes completos da obra, clique no botão abaixo.
-                  </p>
+          {obra ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Localização da Obra
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Cidade</p>
+                    <p className="font-medium">{obra.cidade}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Estado</p>
+                    <p className="font-medium">{obra.estado}</p>
+                  </div>
+                  {obra.endereco_obra && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Endereço</p>
+                      <p className="font-medium">{obra.endereco_obra}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Datas da Obra
+                  </CardTitle>
                   <Button
                     variant="outline"
                     onClick={() => navigate(`/app/obras/${acervo.obra_id}`)}
@@ -510,9 +538,104 @@ export default function AcervoDetailsPage() {
                     <Building2 className="h-4 w-4 mr-2" />
                     Ver Obra Relacionada
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Data de Início</p>
+                    <p className="font-medium">
+                      {format(new Date(obra.data_inicio), "dd/MM/yyyy", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  </div>
+                  {obra.data_conclusao && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Data de Conclusão</p>
+                      <p className="font-medium">
+                        {format(new Date(obra.data_conclusao), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+
+              </Card>
+
+              {obra.finalidade && (
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Finalidade</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+
+                    <p className="text-sm">{obra.finalidade}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {obra.contratante_nome && (
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Contratante da Obra</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nome</p>
+                      <p className="font-medium">{obra.contratante_nome}</p>
+                    </div>
+                    {obra.contratante_tipo && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Tipo</p>
+                        <Badge variant="outline">
+                          {obra.contratante_tipo === "pessoa_fisica"
+                            ? "Pessoa Física"
+                            : obra.contratante_tipo === "pessoa_juridica"
+                              ? "Pessoa Jurídica"
+                              : "Órgão Público"}
+                        </Badge>
+                      </div>
+                    )}
+                    {obra.contratante_cnpj && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">CNPJ/CPF</p>
+                        <p className="font-medium font-mono">{obra.contratante_cnpj}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+
+              {(obra.numero_contrato || obra.valor_total) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Valores da Obra
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {obra.numero_contrato && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Número do Contrato</p>
+                        <p className="font-medium">{obra.numero_contrato}</p>
+                      </div>
+                    )}
+                    {obra.valor_total && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Valor Total</p>
+                        <p className="font-bold text-lg text-primary">
+                          R$ {obra.valor_total.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           ) : (
             <Card>
               <CardContent className="pt-6">

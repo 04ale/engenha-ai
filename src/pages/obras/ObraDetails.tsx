@@ -200,7 +200,7 @@ export default function ObraDetailsPage() {
                       {Math.ceil(
                         (new Date(obra.data_conclusao).getTime() -
                           new Date(obra.data_inicio).getTime()) /
-                          (1000 * 60 * 60 * 24)
+                        (1000 * 60 * 60 * 24)
                       )}{" "}
                       dias
                     </p>
@@ -394,25 +394,36 @@ export default function ObraDetailsPage() {
                   <p className="font-medium text-lg">{obra.contratante_nome}</p>
                 </div>
 
-                {obra.contratante_tipo && (
+                {obra.contratante_cnpj ? (
+                  <div>
+                    <p className="text-sm text-muted-foreground">CNPJ/CPF</p>
+                    <p className="font-medium font-mono">{obra.contratante_cnpj}</p>
+                  </div>
+                ) : <div>
+                  <p className="text-sm text-muted-foreground">CNPJ/CPF</p>
+                  <p className="font-medium text-lg">CNPJ não informado</p>
+                </div>}
+
+                {obra.contratante_tipo ? (
                   <div>
                     <p className="text-sm text-muted-foreground">Tipo</p>
                     <Badge variant="outline">
                       {obra.contratante_tipo === "pessoa_fisica"
                         ? "Pessoa Física"
                         : obra.contratante_tipo === "pessoa_juridica"
-                        ? "Pessoa Jurídica"
-                        : "Órgão Público"}
+                          ? "Pessoa Jurídica"
+                          : "Órgão Público"}
                     </Badge>
                   </div>
-                )}
+                ) : <div>
+                  <p className="text-sm text-muted-foreground">Tipo</p>
+                  <p className="font-medium text-lg">Tipo não informado</p>
+                </div>}
+                <div>
+                  <p className="text-sm text-muted-foreground">Contratante Público</p>
+                  <p className="font-medium text-lg">{obra.is_public ? "Sim" : "Não"}</p>
+                </div>
 
-                {obra.contratante_cnpj && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">CNPJ/CPF</p>
-                    <p className="font-medium font-mono">{obra.contratante_cnpj}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ) : (
@@ -424,6 +435,7 @@ export default function ObraDetailsPage() {
               </CardContent>
             </Card>
           )}
+
         </TabsContent>
       </Tabs>
     </DashboardLayout>
