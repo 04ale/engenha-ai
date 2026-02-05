@@ -32,8 +32,15 @@ export function LoginForm() {
     setIsLoading(true)
     try {
       await login(data.email, data.senha)
-      toast.success("Login realizado com sucesso!")
-      navigate("/app/dashboard")
+
+      // Check for MFA
+      const { isEnabled } = await authService.getMFAStatus()
+      if (isEnabled) {
+        navigate("/auth/verify-2fa")
+      } else {
+        toast.success("Login realizado com sucesso!")
+        navigate("/app/dashboard")
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao fazer login")
     } finally {

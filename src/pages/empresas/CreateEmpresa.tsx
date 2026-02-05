@@ -49,7 +49,7 @@ export default function CreateEmpresaPage() {
             const loadEmpresa = async () => {
                 setIsLoadingData(true)
                 try {
-                    const empresa = await empresaService.getById(id, user.workspace_id)
+                    const empresa = await empresaService.getById(id, user.workspace_id!)
                     if (empresa) {
                         setValue("cnpj", empresa.cnpj)
                         setValue("nome", empresa.nome)

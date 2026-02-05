@@ -102,7 +102,7 @@ export function ResetPasswordDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-[450px] mx-auto">
         <DialogHeader>
           <DialogTitle>
             {step === "request" ? "Recuperar Senha" : "Redefinir Senha"}

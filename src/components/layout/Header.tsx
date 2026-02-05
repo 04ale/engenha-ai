@@ -17,13 +17,6 @@ export function Header() {
     navigate("/auth/login")
   }
 
-  const initials = user?.nome_completo
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U"
-
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 fixed top-0 left-0 right-0 z-40 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">

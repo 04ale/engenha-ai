@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { translateAuthError } from "@/utils/errorTranslator";
 import type {
   RegisterInput,
   LoginInput,
@@ -36,7 +37,7 @@ export const authService = {
       const user = await this.getCurrentUser();
       return { user, error: null };
     } catch (error: any) {
-      return { user: null, error: error.message };
+      return { user: null, error: translateAuthError(error.message) };
     }
   },
 
@@ -56,7 +57,7 @@ export const authService = {
 
     // Nota: O Google vai redirecionar o navegador para fora do seu site.
     // O retorno dessa função só acontece se der erro antes de sair.
-    if (error) return { error: error.message };
+    if (error) return { error: translateAuthError(error.message) };
 
     return { data, error: null };
   },
@@ -93,7 +94,7 @@ export const authService = {
         error: null,
       };
     } catch (error: any) {
-      return { user: null, error: error.message };
+      return { user: null, error: translateAuthError(error.message) };
     }
   },
 
@@ -108,7 +109,7 @@ export const authService = {
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
     });
-    return { error: error?.message || null };
+    return { error: error?.message ? translateAuthError(error.message) : null };
   },
 
   async confirmPasswordReset(
@@ -117,7 +118,7 @@ export const authService = {
     const { error } = await supabase.auth.updateUser({
       password: data.nova_senha,
     });
-    return { error: error?.message || null };
+    return { error: error?.message ? translateAuthError(error.message) : null };
   },
 
   // --- GET CURRENT USER (A Limpeza) ---
@@ -196,7 +197,11 @@ export const authService = {
 
       return { url: data.publicUrl, nome: fileName, error: null };
     } catch (error: any) {
-      return { url: null, nome: null, error: error.message };
+      return {
+        url: null,
+        nome: null,
+        error: translateAuthError(error.message),
+      };
     }
   },
   // --- DELETE AVATAR ---
@@ -257,7 +262,18 @@ export const authService = {
 
       return { error: null };
     } catch (error: any) {
-      return { error: error.message };
+      return { error: translateAuthError(error.message) };
+    }
+  },
+
+  // --- UPDATE EMAIL ---
+  async updateEmail(newEmail: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      return { error: translateAuthError(error.message) };
     }
   },
 
@@ -330,7 +346,7 @@ export const authService = {
 
       return { user: updatedUser, error: null };
     } catch (error: any) {
-      return { user: null, error: error.message };
+      return { user: null, error: translateAuthError(error.message) };
     }
   },
 
@@ -388,7 +404,122 @@ export const authService = {
       };
     } catch (error: any) {
       console.error("Erro ao alterar status publico:", error);
-      return { user: null, error: error.message };
+      return { user: null, error: translateAuthError(error.message) };
+    }
+  },
+  // --- MFA / 2FA ---
+  async mfaEnroll(): Promise<{
+    id: string;
+    type: string;
+    totp: { qr_code: string; secret: string; uri: string };
+    error: string | null;
+  }> {
+    try {
+      // 1. Check for existing unverified factors and delete them
+      const { data: factorsData, error: listError } =
+        await supabase.auth.mfa.listFactors();
+
+      if (!listError && factorsData) {
+        // Typecast factor to any to allow 'unverified' check if types are strict
+        const unverifiedFactors = factorsData.totp.filter(
+          (f: any) => f.status === "unverified",
+        );
+        for (const factor of unverifiedFactors) {
+          await supabase.auth.mfa.unenroll({ factorId: factor.id });
+        }
+      }
+
+      // 2. Enroll new factor
+      // Giving a friendly name to avoid unique constraint on empty name if multiple exist (though we just deleted them)
+      // and for better UX.
+      const factorName = `Authenticator ${new Date().toLocaleDateString()}`;
+
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: factorName,
+      });
+
+      if (error) throw error;
+
+      return {
+        id: data.id,
+        type: data.type,
+        totp: data.totp,
+        error: null,
+      };
+    } catch (error: any) {
+      return {
+        id: "",
+        type: "",
+        totp: {} as any,
+        error: translateAuthError(error.message),
+      };
+    }
+  },
+
+  async mfaChallengeAndVerify(
+    factorId: string,
+    code: string,
+  ): Promise<{ error: string | null }> {
+    try {
+      const { error: challengeError } =
+        await supabase.auth.mfa.challengeAndVerify({
+          factorId,
+          code,
+        });
+
+      if (challengeError) throw challengeError;
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: translateAuthError(error.message) };
+    }
+  },
+
+  async mfaUnenroll(factorId: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId });
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      return { error: translateAuthError(error.message) };
+    }
+  },
+
+  async mfaListFactors() {
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      return { data: null, error: translateAuthError(error.message) };
+    }
+  },
+
+  async getMFAStatus(): Promise<{
+    isEnabled: boolean;
+    factors: any[];
+    nextLevel: string | null;
+  }> {
+    try {
+      const { data: factorsData, error } =
+        await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+
+      const { data: assuranceData } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+      const totpFactor = factorsData.totp.find(
+        (f: any) => f.status === "verified",
+      );
+
+      return {
+        isEnabled: !!totpFactor,
+        factors: factorsData.totp,
+        nextLevel: assuranceData?.nextLevel || null,
+      };
+    } catch (error) {
+      return { isEnabled: false, factors: [], nextLevel: null };
     }
   },
 };

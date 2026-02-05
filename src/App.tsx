@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { AuthCallback } from "@/pages/auth/AuthCallback"
 import LoginPage from "@/pages/auth/Login"
 import RegisterPage from "@/pages/auth/Register"
+import { Verify2FAPage } from "@/pages/auth/Verify2FA"
 import DashboardPage from "@/pages/dashboard/Dashboard"
 import ListObrasPage from "@/pages/obras/ListObras"
 import CreateObraPage from "@/pages/obras/CreateObra"
@@ -29,6 +30,7 @@ function App() {
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/verify-2fa" element={<Verify2FAPage />} />
             <Route
               path="/app/*"
               element={

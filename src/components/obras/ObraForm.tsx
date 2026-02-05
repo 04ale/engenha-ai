@@ -58,8 +58,8 @@ export function ObraForm({ obra, onSubmit, onCancel, isLoading: externalLoading 
   })
 
   const handleSubmit = form.handleSubmit(async (data) => {
-    if (!user) {
-      toast.error("Usuário não autenticado")
+    if (!user || !user.workspace_id) {
+      toast.error("Usuário não autenticado ou workspace não encontrado")
       return
     }
 

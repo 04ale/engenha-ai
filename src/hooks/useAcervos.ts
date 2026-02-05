@@ -19,7 +19,7 @@ export function useAcervos(filters?: AcervosFilters) {
       try {
         setLoading(true);
         setError(null);
-        const data = await acervoService.list(user.workspace_id, filters);
+        const data = await acervoService.list(user.workspace_id!, filters);
         setAcervos(data);
       } catch (err) {
         setError(
@@ -40,7 +40,7 @@ export function useAcervos(filters?: AcervosFilters) {
     refetch: () => {
       if (user?.workspace_id) {
         acervoService
-          .list(user.workspace_id, filters)
+          .list(user.workspace_id!, filters)
           .then(setAcervos)
           .catch(setError);
       }

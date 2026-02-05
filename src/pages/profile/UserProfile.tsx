@@ -31,6 +31,9 @@ export default function UserProfilePage() {
         },
     })
 
+    // Manage email separately since it's not in profileSchema
+    const [emailInput, setEmailInput] = useState("")
+
     // Carregar dados iniciais
     useEffect(() => {
         if (user) {
@@ -41,6 +44,7 @@ export default function UserProfilePage() {
                 avatar_url: user.avatar_url || "",
                 avatar_nome: user.avatar_nome || "",
             })
+            setEmailInput(user.email)
             if (user.avatar_url) {
                 setAvatarPreview(user.avatar_url)
             }
@@ -75,19 +79,26 @@ export default function UserProfilePage() {
 
         setIsLoading(true)
         try {
+            // 1. Update Profile
             const { user: updatedUser, error } = await authService.updateProfile(user.id, data)
 
             if (error) {
                 throw new Error(error)
             }
 
-            if (updatedUser) {
+            // 2. Check if email changed
+            if (emailInput && emailInput !== user.email) {
+                const { error: emailError } = await authService.updateEmail(emailInput)
+                if (emailError) {
+                    toast.error(`Perfil salvo, mas erro ao atualizar email: ${emailError}`)
+                } else {
+                    toast.success("Perfil salvo! Verifique seu novo email para confirmar a alteração.")
+                }
+            } else if (updatedUser) {
                 toast.success("Perfil atualizado com sucesso!")
-                // Aqui seria ideal atualizar o contexto com o novo usuário.
-                // Como o AuthContext não expõe um setUser publico, podemos forçar um reload ou esperar que a navegação cuide disso.
-                // Mas o ideal é que o authService.updateProfile já atualize o localStorage
-                // E podemos recarregar a pagina para refletir em todo o app se necessário, ou melhor, o AuthContext deveria ter um metodo updateLocalUser.
-                // Por hora, vamos recarregar a página para garantir.
+            }
+
+            if (updatedUser) {
                 await refreshUser() // Atualiza o contexto sem reload
                 setIsEditing(false) // Sai do modo de edição
             }
@@ -185,6 +196,92 @@ export default function UserProfilePage() {
         }
     }
 
+    // --- MFA STATES ---
+    const [isMfaModalOpen, setIsMfaModalOpen] = useState(false)
+    const [mfaData, setMfaData] = useState<{ id: string, secret: string, qr_code: string } | null>(null)
+    const [mfaCode, setMfaCode] = useState("")
+    const [isMfaEnabled, setIsMfaEnabled] = useState(false)
+    const [mfaFactors, setMfaFactors] = useState<any[]>([])
+
+    // Check MFA Status on Load
+    useEffect(() => {
+        const checkMfa = async () => {
+            if (!user) return
+            const { isEnabled, factors } = await authService.getMFAStatus()
+            setIsMfaEnabled(isEnabled)
+            setMfaFactors(factors)
+        }
+        checkMfa()
+    }, [user])
+
+    const handleEnableMfa = async () => {
+        setIsLoading(true)
+        try {
+            const { id, totp, error } = await authService.mfaEnroll()
+            if (error) throw new Error(error)
+
+            setMfaData({ id, secret: totp.secret, qr_code: totp.qr_code })
+            setIsMfaModalOpen(true)
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao iniciar configuração de 2FA")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleVerifyMfaDetails = async () => {
+        if (!mfaData || !mfaCode) return
+
+        setIsLoading(true)
+        try {
+            const { error } = await authService.mfaChallengeAndVerify(mfaData.id, mfaCode)
+            if (error) throw new Error(error)
+
+            toast.success("Autenticação de dois fatores ativada com sucesso!")
+            setIsMfaModalOpen(false)
+            setMfaData(null)
+            setMfaCode("")
+            setIsMfaEnabled(true)
+            // Refresh factors
+            const { factors } = await authService.getMFAStatus()
+            setMfaFactors(factors)
+        } catch (error: any) {
+            toast.error(error.message || "Código inválido. Tente novamente.")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleDisableMfa = async () => {
+        // Should ideally ask for confirmation
+        toast("Desativar 2FA?", {
+            description: "Sua conta ficará menos segura.",
+            action: {
+                label: "Desativar",
+                onClick: async () => {
+                    setIsLoading(true)
+                    try {
+                        // Unenroll all TOTP factors for now to be safe, or just the first one
+                        // Usually we iterate or unenroll the verified one.
+                        const factorToUnenroll = mfaFactors.find(f => f.status === 'verified')
+                        if (!factorToUnenroll) return
+
+                        const { error } = await authService.mfaUnenroll(factorToUnenroll.id)
+                        if (error) throw new Error(error)
+
+                        toast.success("2FA desativado.")
+                        setIsMfaEnabled(false)
+                        setMfaFactors([])
+                    } catch (err: any) {
+                        toast.error(err.message || "Erro ao desativar 2FA")
+                    } finally {
+                        setIsLoading(false)
+                    }
+                }
+            }
+        })
+    }
+
     return (
         <DashboardLayout>
             <div className="mb-8 flex items-center justify-between">
@@ -210,225 +307,306 @@ export default function UserProfilePage() {
                     {user.is_public ? "Tornar privado" : "Tornar público"}
                 </Button>
             </div>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>{user.nome_completo}</CardTitle>
-                    <div className="flex flex-row items-center gap-2">
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleDeleteAvatar}
-                            disabled={isLoading || (!user.avatar_url && !avatarPreview)}
-                            className="mt-2 animate-in fade-in slide-in-from-top-2 max-w-[200px]"
-                        >
-                            Excluir foto
-                        </Button>
-                        {avatarPreview && avatarPreview !== user.avatar_url && (
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>{user.nome_completo}</CardTitle>
+                        <div className="flex flex-row items-center gap-2">
                             <Button
-                                onClick={handleSaveAvatar}
-                                disabled={isLoading || uploadingAvatar}
+                                variant="destructive"
                                 size="sm"
+                                onClick={handleDeleteAvatar}
+                                disabled={isLoading || (!user.avatar_url && !avatarPreview)}
                                 className="mt-2 animate-in fade-in slide-in-from-top-2 max-w-[200px]"
                             >
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                Salvar foto nova
+                                Excluir foto
                             </Button>
-                        )}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col items-center mb-8 gap-4">
-                        <div className="relative group">
-                            <Avatar className="w-32 h-32 border-4 border-background shadow-xl ring-2 ring-muted transition-all duration-300 group-hover:ring-primary">
-                                {user.avatar_url || avatarPreview ?
-                                    (<AvatarImage
-                                        src={avatarPreview || undefined}
-                                        className="object-cover transition-opacity duration-300 group-hover:opacity-90"
-                                    />)
-                                    : <AvatarFallback className="text-4xl bg-muted">
-                                        {user.nome_completo?.charAt(0).toUpperCase() || "U"}
-                                    </AvatarFallback>
-                                }</Avatar>
-                            <label
-                                htmlFor="avatar-upload"
-                                className="absolute bottom-1 right-1 p-2.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-all shadow-lg hover:scale-110 active:scale-95"
-                            >
-                                {uploadingAvatar ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <Camera className="w-5 h-5" />
-                                )}
-                                <input
-                                    id="avatar-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleImageUpload}
-                                    disabled={uploadingAvatar}
-                                />
-                            </label>
+                            {avatarPreview && avatarPreview !== user.avatar_url && (
+                                <Button
+                                    onClick={handleSaveAvatar}
+                                    disabled={isLoading || uploadingAvatar}
+                                    size="sm"
+                                    className="mt-2 animate-in fade-in slide-in-from-top-2 max-w-[200px]"
+                                >
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                    Salvar foto nova
+                                </Button>
+                            )}
                         </div>
-                        <div className="text-center space-y-1 flex flex-col items-center">
-                            <h3 className="font-semibold text-lg">{user.nome_completo || "Usuário"}</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Clique na câmera para alterar sua foto
-                            </p>
-
-                        </div>
-                    </div>
-
-                    {isEditing ? (<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Campo Email (Somente Leitura) */}
-                            <div className="space-y-2">
-                                <Label htmlFor="email" className="flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-muted-foreground" />
-                                    Email
-                                </Label>
-                                <Input
-                                    id="email"
-                                    value={user.email}
-                                    disabled
-                                    className="bg-muted/50"
-                                />
-                                <p className="text-[0.8rem] text-muted-foreground">
-                                    Somente leitura
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col items-center mb-8 gap-4">
+                            <div className="relative group">
+                                <Avatar className="w-32 h-32 border-4 border-background shadow-xl ring-2 ring-muted transition-all duration-300 group-hover:ring-primary">
+                                    {user.avatar_url || avatarPreview ?
+                                        (<AvatarImage
+                                            src={avatarPreview || undefined}
+                                            className="object-cover transition-opacity duration-300 group-hover:opacity-90"
+                                        />)
+                                        : <AvatarFallback className="text-4xl bg-muted">
+                                            {user.nome_completo?.charAt(0).toUpperCase() || "U"}
+                                        </AvatarFallback>
+                                    }</Avatar>
+                                <label
+                                    htmlFor="avatar-upload"
+                                    className="absolute bottom-1 right-1 p-2.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-all shadow-lg hover:scale-110 active:scale-95"
+                                >
+                                    {uploadingAvatar ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <Camera className="w-5 h-5" />
+                                    )}
+                                    <input
+                                        id="avatar-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageUpload}
+                                        disabled={uploadingAvatar}
+                                    />
+                                </label>
+                            </div>
+                            <div className="text-center space-y-1 flex flex-col items-center">
+                                <h3 className="font-semibold text-lg">{user.nome_completo || "Usuário"}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Clique na câmera para alterar sua foto
                                 </p>
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="nome_completo" className="flex items-center gap-2">
-                                    <User className="w-4 h-4 text-muted-foreground" />
-                                    Nome Completo
-                                </Label>
-                                <Input
-                                    id="nome_completo"
-                                    {...form.register("nome_completo")}
-                                    placeholder="Seu nome completo"
-                                    className="focus-visible:ring-primary"
-                                />
-                                {form.formState.errors.nome_completo && (
-                                    <p className="text-sm text-destructive">
-                                        {form.formState.errors.nome_completo.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="crea" className="flex items-center gap-2">
-                                    <FileBadge className="w-4 h-4 text-muted-foreground" />
-                                    CREA
-                                </Label>
-                                <Input
-                                    id="crea"
-                                    {...form.register("crea")}
-                                    placeholder="Seu número do CREA"
-                                    className="focus-visible:ring-primary"
-                                />
-                                {form.formState.errors.crea && (
-                                    <p className="text-sm text-destructive">
-                                        {form.formState.errors.crea.message}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="telefone" className="flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-muted-foreground" />
-                                    Telefone
-                                </Label>
-                                <Input
-                                    id="telefone"
-                                    {...form.register("telefone")}
-                                    placeholder="(00) 00000-0000"
-                                    className="focus-visible:ring-primary"
-                                />
-                                {form.formState.errors.telefone && (
-                                    <p className="text-sm text-destructive">
-                                        {form.formState.errors.telefone.message}
-                                    </p>
-                                )}
                             </div>
                         </div>
 
-                        <div className="flex gap-3 justify-end pt-4 border-t">
-                            <Button variant="outline" type="button" onClick={() => setIsEditing(false)} disabled={isLoading}>
-                                Voltar
-                            </Button>
-                            <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Salvar Alterações
-                            </Button>
-
-                        </div>
-                    </form>) : (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        {isEditing ? (<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Campo Email (Somente Leitura) */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="email-view" className="flex items-center gap-2">
+                                    <Label htmlFor="email" className="flex items-center gap-2">
                                         <Mail className="w-4 h-4 text-muted-foreground" />
                                         Email
                                     </Label>
                                     <Input
-                                        id="email-view"
-                                        value={user.email}
-                                        disabled
-                                        className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        id="email"
+                                        value={emailInput}
+                                        onChange={(e) => setEmailInput(e.target.value)}
+                                        placeholder="seu@email.com"
+                                        className="focus-visible:ring-primary"
                                     />
+                                    <p className="text-[0.8rem] text-muted-foreground">
+                                        Ao alterar, você precisará confirmar o novo email.
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="crea-view" className="flex items-center gap-2">
+                                    <Label htmlFor="nome_completo" className="flex items-center gap-2">
+                                        <User className="w-4 h-4 text-muted-foreground" />
+                                        Nome Completo
+                                    </Label>
+                                    <Input
+                                        id="nome_completo"
+                                        {...form.register("nome_completo")}
+                                        placeholder="Seu nome completo"
+                                        className="focus-visible:ring-primary"
+                                    />
+                                    {form.formState.errors.nome_completo && (
+                                        <p className="text-sm text-destructive">
+                                            {form.formState.errors.nome_completo.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="crea" className="flex items-center gap-2">
                                         <FileBadge className="w-4 h-4 text-muted-foreground" />
                                         CREA
                                     </Label>
                                     <Input
-                                        id="crea-view"
-                                        value={user.crea || ""}
-                                        disabled
-                                        className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        id="crea"
+                                        {...form.register("crea")}
+                                        placeholder="Seu número do CREA"
+                                        className="focus-visible:ring-primary"
                                     />
+                                    {form.formState.errors.crea && (
+                                        <p className="text-sm text-destructive">
+                                            {form.formState.errors.crea.message}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="nome-view" className="flex items-center gap-2">
-                                        <User className="w-4 h-4 text-muted-foreground" />
-                                        Privacidade
-                                    </Label>
-                                    <Input
-                                        id="nome-view"
-                                        value={user.is_public ? "Público" : "Privado"}
-                                        disabled
-                                        className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="telefone-view" className="flex items-center gap-2">
+                                    <Label htmlFor="telefone" className="flex items-center gap-2">
                                         <Phone className="w-4 h-4 text-muted-foreground" />
                                         Telefone
                                     </Label>
-
                                     <Input
-                                        id="telefone-view"
-                                        value={user.telefone || "Telefone não informado"}
-                                        disabled
-                                        className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        id="telefone"
+                                        {...form.register("telefone")}
+                                        placeholder="(00) 00000-0000"
+                                        className="focus-visible:ring-primary"
                                     />
+                                    {form.formState.errors.telefone && (
+                                        <p className="text-sm text-destructive">
+                                            {form.formState.errors.telefone.message}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
-                            <div className="flex justify-end pt-4 border-t">
-                                <Button type="button" onClick={() => setIsEditing(true)} disabled={isLoading} className="w-full sm:w-auto">
+
+                            <div className="flex gap-3 justify-end pt-4 border-t">
+                                <Button variant="outline" type="button" onClick={() => setIsEditing(false)} disabled={isLoading}>
+                                    Voltar
+                                </Button>
+                                <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
                                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Editar Perfil
+                                    Salvar Alterações
+                                </Button>
+
+                            </div>
+                        </form>) : (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email-view" className="flex items-center gap-2">
+                                            <Mail className="w-4 h-4 text-muted-foreground" />
+                                            Email
+                                        </Label>
+                                        <Input
+                                            id="email-view"
+                                            value={user.email}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="crea-view" className="flex items-center gap-2">
+                                            <FileBadge className="w-4 h-4 text-muted-foreground" />
+                                            CREA
+                                        </Label>
+                                        <Input
+                                            id="crea-view"
+                                            value={user.crea || ""}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="nome-view" className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-muted-foreground" />
+                                            Privacidade
+                                        </Label>
+                                        <Input
+                                            id="nome-view"
+                                            value={user.is_public ? "Público" : "Privado"}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="telefone-view" className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4 text-muted-foreground" />
+                                            Telefone
+                                        </Label>
+
+                                        <Input
+                                            id="telefone-view"
+                                            value={user.telefone || "Telefone não informado"}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end pt-4 border-t">
+                                    <Button type="button" onClick={() => setIsEditing(true)} disabled={isLoading} className="w-full sm:w-auto">
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Editar Perfil
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* SECTION SAFETY / MFA */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            Segurança
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                            <div className="space-y-1">
+                                <h3 className="font-medium">Autenticação de Dois Fatores (2FA)</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Adicione uma camada extra de segurança à sua conta.
+                                </p>
+                            </div>
+                            <Button
+                                variant={isMfaEnabled ? "destructive" : "default"}
+                                onClick={isMfaEnabled ? handleDisableMfa : handleEnableMfa}
+                                disabled={isLoading}
+                            >
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isMfaEnabled ? "Desativar" : "Ativar"}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+
+            {/* DIALOG MFA ENROLLMENT */}
+            {isMfaModalOpen && mfaData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                        <CardHeader>
+                            <CardTitle>Configurar 2FA</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex flex-col items-center justify-center gap-4 p-4 bg-muted/30 rounded-lg">
+                                {mfaData.qr_code.startsWith('data:') ? (
+                                    <img src={mfaData.qr_code} alt="QR Code" className="w-48 h-48 rounded-md border bg-white p-2" />
+                                ) : (
+                                    <div
+                                        className="w-48 h-48 rounded-md border bg-white p-2 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                                        dangerouslySetInnerHTML={{ __html: mfaData.qr_code }}
+                                    />
+                                )}
+                                <div className="text-center space-y-1">
+                                    <p className="text-xs text-muted-foreground font-mono bg-muted p-1 rounded">
+                                        Secret: {mfaData.secret}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Escaneie com seu app autenticador (Google Authenticator, Authy, etc)
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Código de Verificação</Label>
+                                <Input
+                                    value={mfaCode}
+                                    onChange={(e) => setMfaCode(e.target.value)}
+                                    placeholder="000000"
+                                    className="text-center text-lg tracking-widest"
+                                    maxLength={6}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="ghost" onClick={() => setIsMfaModalOpen(false)}>Cancelar</Button>
+                                <Button onClick={handleVerifyMfaDetails} disabled={mfaCode.length < 6 || isLoading}>
+                                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    Verificar e Ativar
                                 </Button>
                             </div>
-                        </div>
-                    )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
-
-                </CardContent>
-            </Card>
         </DashboardLayout >
     )
 }
+

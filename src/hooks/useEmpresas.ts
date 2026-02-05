@@ -19,7 +19,7 @@ export function useEmpresas() {
       try {
         setLoading(true);
         setError(null);
-        const data = await empresaService.list(user.workspace_id);
+        const data = await empresaService.list(user.workspace_id!);
         setEmpresas(data);
       } catch (err) {
         setError(

@@ -19,7 +19,7 @@ export function useObras(filters?: ObrasFilters) {
       try {
         setLoading(true);
         setError(null);
-        const data = await obraService.list(user.workspace_id, filters);
+        const data = await obraService.list(user.workspace_id!, filters);
         setObras(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar obras");

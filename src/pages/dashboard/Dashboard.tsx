@@ -11,9 +11,14 @@ import { Building2, FileText, FileCheck, DollarSign } from "lucide-react"
 import { useMemo } from "react"
 import { obraService } from "@/services/obraService"
 import { acervoService } from "@/services/acervoService"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { authService } from "@/services/authService"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { metrics, recentObras, recentAcervos, loading } = useDashboard()
   const [dialogOpen, setDialogOpen] = useState<{
     type: "obras" | "acervos" | "cats" | "valor" | null
@@ -21,6 +26,7 @@ export default function DashboardPage() {
   }>({ type: null, open: false })
   const [dialogData, setDialogData] = useState<any[]>([])
   const [dialogLoading, setDialogLoading] = useState(false)
+  const [creaInput, setCreaInput] = useState(user?.crea || "")
 
   const obrasTrend = useMemo(() => {
     if (!metrics) return "neutral"
@@ -101,6 +107,26 @@ export default function DashboardPage() {
       setDialogLoading(false)
     }
   }
+
+  const handleSaveCREA = async () => {
+    if (!user?.id || !creaInput) return
+
+    try {
+      await authService.updateProfile(user.id, {
+        nome_completo: user.nome_completo,
+        crea: creaInput,
+        telefone: user.telefone,
+        avatar_url: user.avatar_url,
+        avatar_nome: user.avatar_nome
+      })
+      await refreshUser()
+      toast.success("CREA salvo com sucesso!")
+    } catch (error) {
+      console.error("Erro ao salvar CREA:", error)
+      toast.error("Erro ao salvar CREA")
+    }
+  }
+
 
   return (
     <DashboardLayout>
@@ -192,6 +218,32 @@ export default function DashboardPage() {
           loading={dialogLoading}
         />
       )}
+
+      <Dialog open={!user?.crea}>
+        <DialogContent className="sm:max-w-[450px] mx-auto" >
+          <DialogHeader>
+            <DialogTitle>Adicionar CREA</DialogTitle>
+            <DialogDescription>
+              Identificamos que seu perfil está sem o número do CREA.
+              Adicione-o para continuar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <Input
+              type="text"
+              placeholder="CREA"
+              value={creaInput}
+              onChange={(e) => setCreaInput(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="submit" onClick={handleSaveCREA}>Salvar CREA</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   )
 }
