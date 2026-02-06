@@ -34,6 +34,7 @@ export function ItemFormDialog({
       quantidade: 0,
       valor_executado: 0,
       data_execucao: "",
+      categoria: "",
     },
   })
 
@@ -56,6 +57,14 @@ export function ItemFormDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="categoria">Categoria</Label>
+            <Input
+              id="categoria"
+              {...form.register("categoria")}
+              placeholder="Ex: Serviços Preliminares"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>
             <Input
               id="descricao"
@@ -68,7 +77,6 @@ export function ItemFormDialog({
               </p>
             )}
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="unidade">Unidade *</Label>

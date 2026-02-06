@@ -108,6 +108,7 @@ export default function AcervoDetailsPage() {
 
     const itemsToExport: CreateItemInput[] = acervo.itens.map((item) => ({
       descricao: item.descricao,
+      categoria: item.categoria,
       unidade: item.unidade,
       quantidade: item.quantidade,
       valor_executado: item.valor_executado,
@@ -432,6 +433,7 @@ export default function AcervoDetailsPage() {
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="font-semibold">Descrição</TableHead>
+                          <TableHead className="font-semibold">Categoria</TableHead>
                           <TableHead className="font-semibold">Unidade</TableHead>
                           <TableHead className="font-semibold text-right">Quantidade</TableHead>
                           <TableHead className="font-semibold text-right">Valor Unit.</TableHead>
@@ -443,6 +445,7 @@ export default function AcervoDetailsPage() {
                         {acervo.itens.map((item) => (
                           <TableRow key={item.id} className="hover:bg-muted/30">
                             <TableCell className="font-medium">{item.descricao}</TableCell>
+                            <TableCell>{item.categoria || "-"}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{item.unidade}</Badge>
                             </TableCell>
