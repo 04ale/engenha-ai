@@ -12,6 +12,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import { authService } from "@/services/authService"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ibgeService, type IBGEUF, type IBGEMunicipio } from "@/services/ibgeService"
+import { Badge } from "@/components/ui/badge"
+import { Select } from "@/components/ui/select"
+import { Trash2, Plus, MapPin } from "lucide-react"
 
 export default function UserProfilePage() {
     const { user, refreshUser } = useAuth() // Podemos usar login ou checkUser se expormos algo para recarregar o usuario
@@ -213,6 +217,101 @@ export default function UserProfilePage() {
         }
         checkMfa()
     }, [user])
+
+    // --- LOCATION STATES ---
+    const [locaisAtuacao, setLocaisAtuacao] = useState<{ uf: string, cidades: string[] }[]>([])
+    const [estados, setEstados] = useState<IBGEUF[]>([])
+    const [municipios, setMunicipios] = useState<IBGEMunicipio[]>([])
+    const [selectedUF, setSelectedUF] = useState<string>("")
+    const [selectedCidade, setSelectedCidade] = useState<string>("")
+    const [loadingLocations, setLoadingLocations] = useState(false)
+
+    // Load Initial Data
+    useEffect(() => {
+        ibgeService.getEstados().then(setEstados)
+    }, [])
+
+    useEffect(() => {
+        if (user) {
+            authService.getEngineerLocations(user.id).then(({ locais }) => {
+                // Ensure data structure is correct (array of { uf, cidades })
+                if (Array.isArray(locais)) {
+                    setLocaisAtuacao(locais)
+                }
+            })
+        }
+    }, [user])
+
+    useEffect(() => {
+        if (selectedUF) {
+            setMunicipios([])
+            ibgeService.getMunicipios(selectedUF).then(setMunicipios)
+        } else {
+            setMunicipios([])
+        }
+    }, [selectedUF])
+
+    const handleAddLocation = () => {
+        if (!selectedUF) return
+
+        setLocaisAtuacao(prev => {
+            const newLocais = [...prev]
+            const existingUFIndex = newLocais.findIndex(l => l.uf === selectedUF)
+
+            if (existingUFIndex >= 0) {
+                // State already exists
+                if (selectedCidade) {
+                    // Check if city exists
+                    if (!newLocais[existingUFIndex].cidades.includes(selectedCidade)) {
+                        newLocais[existingUFIndex].cidades.push(selectedCidade)
+                    } else {
+                        toast.warning("Cidade já adicionada.")
+                    }
+                } else {
+                    // Maybe user wants to add 'All State'? For now let's just ignore empty city selection 
+                    // unless we implement "Whole State" logic. 
+                    // Let's assume selecting just UF means nothing for now or handle explicitly.
+                    // If user selects specific cities, they select city.
+                }
+            } else {
+                // New State
+                if (selectedCidade) {
+                    newLocais.push({ uf: selectedUF, cidades: [selectedCidade] })
+                }
+            }
+            return newLocais
+        })
+        setSelectedCidade("") // Reset city but keep state for faster addition
+    }
+
+    const handleRemoveCity = (uf: string, cidade: string) => {
+        setLocaisAtuacao(prev => {
+            return prev.map(item => {
+                if (item.uf === uf) {
+                    return { ...item, cidades: item.cidades.filter(c => c !== cidade) }
+                }
+                return item
+            }).filter(item => item.cidades.length > 0) // Remove entry if no cities left
+        })
+    }
+
+    const handleRemoveState = (uf: string) => {
+        setLocaisAtuacao(prev => prev.filter(item => item.uf !== uf))
+    }
+
+    const handleSaveLocations = async () => {
+        if (!user) return
+        setLoadingLocations(true)
+        try {
+            const { error } = await authService.updateEngineerLocations(user.id, locaisAtuacao)
+            if (error) throw new Error(error)
+            toast.success("Locais de atuação atualizados!")
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao salvar locais.")
+        } finally {
+            setLoadingLocations(false)
+        }
+    }
 
     const handleEnableMfa = async () => {
         setIsLoading(true)
@@ -524,6 +623,93 @@ export default function UserProfilePage() {
                                 </div>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+
+                {/* SECTION LOCATIONS */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <MapPin className="w-5 h-5" />
+                            Locais de Atuação
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex flex-col md:flex-row gap-4 items-end bg-muted/20 p-4 rounded-lg">
+                            <div className="space-y-2 w-full md:w-1/3">
+                                <Label>Estado (UF)</Label>
+                                <Select
+                                    value={selectedUF}
+                                    onChange={(e) => { setSelectedUF(e.target.value); setSelectedCidade("") }}
+                                >
+                                    <option value="" disabled>Selecione o Estado</option>
+                                    {estados.map(uf => (
+                                        <option key={uf.id} value={uf.sigla}>{uf.nome}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div className="space-y-2 w-full md:w-1/3">
+                                <Label>Cidade</Label>
+                                <Select
+                                    value={selectedCidade}
+                                    onChange={(e) => setSelectedCidade(e.target.value)}
+                                    disabled={!selectedUF}
+                                >
+                                    <option value="" disabled>Selecione a Cidade</option>
+                                    {municipios.map(mun => (
+                                        <option key={mun.id} value={mun.nome}>{mun.nome}</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <Button onClick={handleAddLocation} disabled={!selectedCidade} className="w-full md:w-auto">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Adicionar
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <Label>Locais Selecionados</Label>
+                            {locaisAtuacao.length === 0 && (
+                                <p className="text-sm text-muted-foreground italic">Nenhum local adicionado.</p>
+                            )}
+                            <div className="grid gap-4">
+                                {locaisAtuacao.map((local) => (
+                                    <div key={local.uf} className="border rounded-lg p-3 relative bg-card">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="font-bold text-lg">{local.uf}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveState(local.uf)}
+                                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {local.cidades.map(cidade => (
+                                                <Badge key={cidade} variant="secondary" className="flex items-center gap-1">
+                                                    {cidade}
+                                                    <button
+                                                        onClick={() => handleRemoveCity(local.uf, cidade)}
+                                                        className="ml-1 hover:text-destructive focus:outline-none"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-4 border-t">
+                            <Button onClick={handleSaveLocations} disabled={loadingLocations} className="bg-primary shadow-lg shadow-primary/20">
+                                {loadingLocations && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                Salvar Locais
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 

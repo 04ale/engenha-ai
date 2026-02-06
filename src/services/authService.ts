@@ -522,4 +522,58 @@ export const authService = {
       return { isEnabled: false, factors: [], nextLevel: null };
     }
   },
+
+  // --- ENGINEER LOCATIONS ---
+  async getEngineerLocations(
+    userId: string,
+  ): Promise<{ locais: any[]; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from("engenheiros")
+        .select("locais_atuacao")
+        .eq("created_by", userId)
+        .single();
+
+      if (error) {
+        // Se erro for "row not found", retorna vazio sem erro
+        if (error.code === "PGRST116") return { locais: [], error: null };
+        throw error;
+      }
+
+      return { locais: data.locais_atuacao || [], error: null };
+    } catch (error: any) {
+      return { locais: [], error: translateAuthError(error.message) };
+    }
+  },
+
+  async updateEngineerLocations(
+    userId: string,
+    locais: any[],
+  ): Promise<{ error: string | null }> {
+    try {
+      // 1. Encontrar o engenheiro
+      const { data: engenheiro, error: findError } = await supabase
+        .from("engenheiros")
+        .select("id")
+        .eq("created_by", userId)
+        .single();
+
+      if (findError)
+        throw new Error(
+          "Perfil de engenheiro não encontrado para este usuário.",
+        );
+
+      // 2. Atualizar
+      const { error: updateError } = await supabase
+        .from("engenheiros")
+        .update({ locais_atuacao: locais })
+        .eq("id", engenheiro.id);
+
+      if (updateError) throw updateError;
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: translateAuthError(error.message) };
+    }
+  },
 };
