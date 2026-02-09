@@ -57,7 +57,6 @@ export function ImportItemsDialog({
     setLoading(true)
     try {
       await onImport(previewItems)
-      toast.success(`${previewItems.length} item(ns) importado(s) com sucesso!`)
       handleClose()
     } catch (err) {
       toast.error(
@@ -182,6 +181,8 @@ export function ImportItemsDialog({
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left font-semibold">Categoria</th>
+                      <th className="px-3 py-2 text-left font-semibold">Fonte</th>
+                      <th className="px-3 py-2 text-left font-semibold">Código</th>
                       <th className="px-3 py-2 text-left font-semibold">Descrição</th>
                       <th className="px-3 py-2 text-left font-semibold">Unidade</th>
                       <th className="px-3 py-2 text-right font-semibold">Quantidade</th>
@@ -196,6 +197,8 @@ export function ImportItemsDialog({
                         className="border-t hover:bg-muted/30 transition-colors"
                       >
                         <td className="px-3 py-2">{item.categoria || "-"}</td>
+                        <td className="px-3 py-2">{item.fonte || "-"}</td>
+                        <td className="px-3 py-2">{item.codigo || "-"}</td>
                         <td className="px-3 py-2">{item.descricao}</td>
                         <td className="px-3 py-2">{item.unidade}</td>
                         <td className="px-3 py-2 text-right">

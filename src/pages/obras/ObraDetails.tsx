@@ -9,13 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { obraService } from "@/services/obraService"
 import { acervoService } from "@/services/acervoService"
+import { exportItemsToExcel } from "@/services/excelService"
+import { ExportItemsDialog } from "@/components/acervos/ExportItemsDialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
-import { ArrowLeft, Edit, Building2, MapPin, Calendar, DollarSign, FileText, Plus } from "lucide-react"
+import { ArrowLeft, Edit, Building2, MapPin, Calendar, DollarSign, FileText, Plus, FileSpreadsheet } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import type { Obra } from "@/types/obra"
 import type { Acervo } from "@/types/acervo"
+import type { CreateItemInput } from "@/types/item"
 
 export default function ObraDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,6 +28,7 @@ export default function ObraDetailsPage() {
   const [acervos, setAcervos] = useState<Acervo[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingAcervos, setLoadingAcervos] = useState(true)
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   useEffect(() => {
     const loadObra = async () => {
@@ -96,6 +100,37 @@ export default function ObraDetailsPage() {
     (sum, acervo) => sum + (acervo.valor_total || 0),
     0
   )
+
+  const handleExportItems = () => {
+    const hasItems = acervos.some(
+      (acervo) => acervo.itens && acervo.itens.length > 0
+    )
+
+    if (!hasItems) {
+      toast.info("Não há itens para exportar nesta obra")
+      return
+    }
+
+    setShowExportDialog(true)
+  }
+
+  const handleConfirmExport = (selectedColumns: string[]) => {
+    const allItems: CreateItemInput[] = acervos.flatMap((acervo) =>
+      (acervo.itens || []).map((item) => ({
+        descricao: item.descricao,
+        categoria: item.categoria,
+        fonte: item.fonte,
+        codigo: item.codigo,
+        unidade: item.unidade,
+        quantidade: item.quantidade,
+        valor_executado: item.valor_executado,
+        data_execucao: item.data_execucao,
+      }))
+    )
+
+    exportItemsToExcel(allItems, { columns: selectedColumns })
+    toast.success("Planilha da obra exportada com sucesso!")
+  }
 
   return (
     <DashboardLayout>
@@ -277,13 +312,24 @@ export default function ObraDetailsPage() {
                       : "Nenhum acervo técnico vinculado"}
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/app/acervos/novo?obra_id=${obra.id}`)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Acervo
-                </Button>
+                <div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportItems}
+                    className="mr-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Exportar Itens da Obra
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/app/acervos/novo?obra_id=${obra.id}`)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Acervo
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -438,6 +484,12 @@ export default function ObraDetailsPage() {
 
         </TabsContent>
       </Tabs>
+
+      <ExportItemsDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        onExport={handleConfirmExport}
+      />
     </DashboardLayout>
   )
 }

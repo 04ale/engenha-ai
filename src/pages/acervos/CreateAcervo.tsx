@@ -80,7 +80,7 @@ export default function CreateAcervoPage() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           Novo Acervo Técnico
         </h2>
         <p className="text-muted-foreground">

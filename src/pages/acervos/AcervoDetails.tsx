@@ -11,6 +11,7 @@ import { acervoService } from "@/services/acervoService"
 import { storageService } from "@/services/storageService"
 import { exportItemsToExcel } from "@/services/excelService"
 import { ImportItemsDialog } from "@/components/acervos/ImportItemsDialog"
+import { ExportItemsDialog } from "@/components/acervos/ExportItemsDialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import { ArrowLeft, Edit, FileText, Download, Building2, MapPin, Calendar, DollarSign, FileCheck, Upload, FileSpreadsheet } from "lucide-react"
@@ -20,6 +21,7 @@ import type { Acervo } from "@/types/acervo"
 import type { CreateItemInput } from "@/types/item"
 import { obraService } from "@/services/obraService"
 import type { Obra } from "@/types/obra"
+import { exportAcervoToPDF } from "@/services/pdfService"
 
 export default function AcervoDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -29,6 +31,7 @@ export default function AcervoDetailsPage() {
   const [obra, setObra] = useState<Obra | null>(null)
   const [loading, setLoading] = useState(true)
   const [showImportDialog, setShowImportDialog] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   useEffect(() => {
     const loadAcervo = async () => {
@@ -92,9 +95,26 @@ export default function AcervoDetailsPage() {
     if (!id || !user?.workspace_id) return
 
     try {
-      const updatedAcervo = await acervoService.addItems(id, items, user.workspace_id)
+      // Filtrar itens duplicados pela descrição
+      const existingDescriptions = new Set(acervo?.itens?.map((i) => i.descricao.toLowerCase().trim()) || [])
+      const newItems = items.filter((item) => !existingDescriptions.has(item.descricao.toLowerCase().trim()))
+
+      const duplicatesCount = items.length - newItems.length
+
+      if (duplicatesCount > 0) {
+        toast.info(
+          `${duplicatesCount} item(ns) ignorado(s) pois já existe(m) no acervo.`
+        )
+      }
+
+      if (newItems.length === 0) {
+        toast.warning("Todos os itens importados já existem no acervo.")
+        return
+      }
+
+      const updatedAcervo = await acervoService.addItems(id, newItems, user.workspace_id)
       setAcervo(updatedAcervo)
-      toast.success(`${items.length} item(ns) adicionado(s) com sucesso!`)
+      toast.success(`${newItems.length} item(ns) adicionado(s) com sucesso!`)
     } catch (error) {
       throw error
     }
@@ -105,17 +125,24 @@ export default function AcervoDetailsPage() {
       toast.info("Não há itens para exportar")
       return
     }
+    setShowExportDialog(true)
+  }
+
+  const handleConfirmExport = (selectedColumns: string[]) => {
+    if (!acervo?.itens) return
 
     const itemsToExport: CreateItemInput[] = acervo.itens.map((item) => ({
       descricao: item.descricao,
       categoria: item.categoria,
+      fonte: item.fonte,
+      codigo: item.codigo,
       unidade: item.unidade,
       quantidade: item.quantidade,
       valor_executado: item.valor_executado,
       data_execucao: item.data_execucao,
     }))
 
-    exportItemsToExcel(itemsToExport)
+    exportItemsToExcel(itemsToExport, { columns: selectedColumns })
     toast.success("Planilha exportada com sucesso!")
   }
 
@@ -168,16 +195,22 @@ export default function AcervoDetailsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+
             {acervo.arquivo_cat_url && (
               <Button variant="outline" onClick={handleViewCAT}>
                 <FileText className="h-4 w-4 mr-2" />
                 Ver CAT
               </Button>
             )}
+            <Button variant="secondary" onClick={() => acervo && exportAcervoToPDF(acervo, obra)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
             <Button onClick={() => navigate(`/app/acervos/${acervo.id}/editar`)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
+
           </div>
         </div>
       </div>
@@ -432,8 +465,11 @@ export default function AcervoDetailsPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="font-semibold">Descrição</TableHead>
                           <TableHead className="font-semibold">Categoria</TableHead>
+                          <TableHead className="font-semibold">Fonte</TableHead>
+                          <TableHead className="font-semibold">Código</TableHead>
+                          <TableHead className="font-semibold">Descrição</TableHead>
+
                           <TableHead className="font-semibold">Unidade</TableHead>
                           <TableHead className="font-semibold text-right">Quantidade</TableHead>
                           <TableHead className="font-semibold text-right">Valor Unit.</TableHead>
@@ -444,8 +480,10 @@ export default function AcervoDetailsPage() {
                       <TableBody>
                         {acervo.itens.map((item) => (
                           <TableRow key={item.id} className="hover:bg-muted/30">
-                            <TableCell className="font-medium">{item.descricao}</TableCell>
                             <TableCell>{item.categoria || "-"}</TableCell>
+                            <TableCell>{item.fonte || "-"}</TableCell>
+                            <TableCell>{item.codigo || "-"}</TableCell>
+                            <TableCell className="font-medium">{item.descricao}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{item.unidade}</Badge>
                             </TableCell>
@@ -498,6 +536,11 @@ export default function AcervoDetailsPage() {
           open={showImportDialog}
           onOpenChange={setShowImportDialog}
           onImport={handleImportItems}
+        />
+        <ExportItemsDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          onExport={handleConfirmExport}
         />
 
         <TabsContent value="obra" className="space-y-4 mt-6">

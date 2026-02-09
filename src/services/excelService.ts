@@ -4,6 +4,8 @@ import type { CreateItemInput } from "@/types/item";
 export interface ExcelItemRow {
   descricao: string;
   categoria?: string;
+  fonte?: string;
+  codigo?: string;
   unidade: string;
   quantidade: string | number;
   valor_executado: string | number;
@@ -17,8 +19,9 @@ export function exportItemTemplate(): void {
   const template: ExcelItemRow[] = [
     {
       categoria: "Infraestrutura",
+      fonte: "SINAPI",
+      codigo: "12345",
       descricao: "Exemplo: Serviço de terraplenagem",
-
       unidade: "m³",
       quantidade: 100,
       valor_executado: 25.5,
@@ -26,6 +29,8 @@ export function exportItemTemplate(): void {
     },
     {
       categoria: "Superestrutura",
+      fonte: "SICRO",
+      codigo: "67890",
       descricao: "Exemplo: Concreto estrutural",
       unidade: "m³",
       quantidade: 50,
@@ -37,6 +42,8 @@ export function exportItemTemplate(): void {
   const worksheet = XLSX.utils.json_to_sheet(template, {
     header: [
       "categoria",
+      "fonte",
+      "codigo",
       "descricao",
       "unidade",
       "quantidade",
@@ -100,6 +107,8 @@ export function importItemsFromFile(file: File): Promise<CreateItemInput[]> {
           descrição: "descricao",
           categoria: "categoria",
           cat: "categoria",
+          fonte: "fonte",
+          codigo: "codigo",
           unidade: "unidade",
           quantidade: "quantidade",
           qtd: "quantidade",
@@ -226,6 +235,8 @@ export function importItemsFromFile(file: File): Promise<CreateItemInput[]> {
               categoria: row.categoria
                 ? String(row.categoria).trim()
                 : undefined,
+              fonte: row.fonte ? String(row.fonte).trim() : undefined,
+              codigo: row.codigo ? String(row.codigo).trim() : undefined,
               unidade: row.unidade.trim(),
               quantidade,
               valor_executado,
@@ -255,20 +266,47 @@ export function importItemsFromFile(file: File): Promise<CreateItemInput[]> {
 /**
  * Exporta itens existentes para Excel
  */
-export function exportItemsToExcel(items: CreateItemInput[]): void {
-  const worksheet = XLSX.utils.json_to_sheet(items);
+export function exportItemsToExcel(
+  items: CreateItemInput[],
+  options?: { columns?: string[] },
+): void {
+  // Definir todas as colunas possíveis
+  const allColumns = [
+    { key: "categoria", label: "Categoria", width: 20 },
+    { key: "fonte", label: "Fonte", width: 15 },
+    { key: "codigo", label: "Código", width: 15 },
+    { key: "descricao", label: "Descrição", width: 40 },
+    { key: "unidade", label: "Unidade", width: 12 },
+    { key: "quantidade", label: "Quantidade", width: 15 },
+    { key: "valor_executado", label: "Valor Unitário", width: 15 },
+    { key: "data_execucao", label: "Data Execução", width: 18 },
+  ];
+
+  // Filtrar colunas com base nas opções
+  const selectedCols = options?.columns
+    ? allColumns.filter((col) => options.columns!.includes(col.key))
+    : allColumns;
+
+  // Filtrar os dados dos itens
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredItems = items.map((item: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredItem: any = {};
+    selectedCols.forEach((col) => {
+      filteredItem[col.key] = item[col.key];
+    });
+    return filteredItem;
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(filteredItems, {
+    header: selectedCols.map((col) => col.key),
+  });
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Itens");
 
   // Ajustar largura das colunas
-  const colWidths = [
-    { wch: 40 }, // descricao
-    { wch: 20 }, // categoria
-    { wch: 12 }, // unidade
-    { wch: 15 }, // quantidade
-    { wch: 15 }, // valor_executado
-    { wch: 18 }, // data_execucao
-  ];
+  const colWidths = selectedCols.map((col) => ({ wch: col.width }));
   worksheet["!cols"] = colWidths;
 
   XLSX.writeFile(

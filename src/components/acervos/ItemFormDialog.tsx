@@ -35,6 +35,8 @@ export function ItemFormDialog({
       valor_executado: 0,
       data_execucao: "",
       categoria: "",
+      fonte: "",
+      codigo: "",
     },
   })
 
@@ -63,6 +65,24 @@ export function ItemFormDialog({
               {...form.register("categoria")}
               placeholder="Ex: Serviços Preliminares"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fonte">Fonte</Label>
+              <Input
+                id="fonte"
+                {...form.register("fonte")}
+                placeholder="Ex: SINAPI"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="codigo">Código</Label>
+              <Input
+                id="codigo"
+                {...form.register("codigo")}
+                placeholder="Ex: 12345"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>

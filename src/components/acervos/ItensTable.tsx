@@ -56,6 +56,8 @@ export function ItensTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Fonte</TableHead>
+                <TableHead>Código</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Unidade</TableHead>
                 <TableHead className="text-right">Quantidade</TableHead>
@@ -69,6 +71,8 @@ export function ItensTable({
               {itens.map((item, index) => (
                 <TableRow key={index}>
                   <TableCell>{item.categoria || "-"}</TableCell>
+                  <TableCell>{item.fonte || "-"}</TableCell>
+                  <TableCell>{item.codigo || "-"}</TableCell>
                   <TableCell className="font-medium">
                     {item.descricao}
                   </TableCell>

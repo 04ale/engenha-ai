@@ -7,7 +7,8 @@ export interface Item {
   valor_executado: number;
   data_execucao: string;
   categoria?: string;
-  created_at: string;
+  fonte?: string;
+  codigo?: string;
 }
 
 export interface CreateItemInput {
@@ -17,6 +18,8 @@ export interface CreateItemInput {
   valor_executado: number;
   data_execucao: string;
   categoria?: string;
+  fonte?: string;
+  codigo?: string;
 }
 
 export interface UpdateItemInput extends CreateItemInput {}

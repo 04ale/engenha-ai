@@ -69,6 +69,21 @@ export const acervoService = {
     return data;
   },
 
+  async listByObra(obraId: string, workspaceId: string): Promise<Acervo[]> {
+    const { data, error } = await supabase
+      .from("acervos")
+      .select("*, itens:acervo_itens(*)")
+      .eq("obra_id", obraId)
+      .eq("workspace_id", workspaceId);
+
+    if (error) {
+      console.error("Erro ao listar acervos da obra:", error);
+      throw new Error("Erro ao carregar acervos da obra");
+    }
+
+    return data || [];
+  },
+
   async create(
     input: CreateAcervoInput,
     userId: string,
@@ -226,7 +241,6 @@ export const acervoService = {
     }>,
     workspaceId: string,
   ): Promise<Acervo> {
-    // Buscar acervo para obter o engenheiro_id
     const currentAcervo = await this.getById(acervoId, workspaceId);
     if (!currentAcervo) {
       throw new Error("Acervo não encontrado");
