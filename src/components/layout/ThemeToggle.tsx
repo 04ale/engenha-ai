@@ -50,9 +50,9 @@ export function ThemeToggle() {
       title={isDark ? "Alternar para tema claro" : "Alternar para tema escuro"}
     >
       {isDark ? (
-        <Sun className="h-4 w-4" />
-      ) : (
         <Moon className="h-4 w-4" />
+      ) : (
+        <Sun className="h-4 w-4" />
       )}
     </Button>
   )

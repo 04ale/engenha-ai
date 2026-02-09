@@ -11,6 +11,7 @@ import DashboardPage from "@/pages/dashboard/Dashboard"
 import ListObrasPage from "@/pages/obras/ListObras"
 import CreateObraPage from "@/pages/obras/CreateObra"
 import EditObraPage from "@/pages/obras/EditObra"
+import LandingPage from "@/pages/landing/LandingPage"
 import ListAcervosPage from "@/pages/acervos/ListAcervos"
 import CreateAcervoPage from "@/pages/acervos/CreateAcervo"
 import EditAcervoPage from "@/pages/acervos/EditAcervo"
@@ -27,6 +28,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
@@ -54,7 +56,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
           </Routes>
           <Toaster position="top-right" />
         </BrowserRouter>

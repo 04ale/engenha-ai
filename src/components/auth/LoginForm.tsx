@@ -50,19 +50,19 @@ export function LoginForm() {
 
   return (
     <>
-      <Card className="w-full max-w-md shadow-xl border-border/50">
-        <CardHeader className="space-y-1 pb-4">
+      <div className="w-full max-w-md shadow-xl border-border/50">
+        <div className="space-y-1 pb-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold">EA</span>
             </div>
-            <CardTitle className="text-2xl">Login</CardTitle>
+            <div className="text-2xl">Login</div>
           </div>
-          <CardDescription>
+          <div>
             Entre com suas credenciais para acessar o sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </div>
+        </div>
+        <div>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -173,8 +173,8 @@ export function LoginForm() {
               </Link>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <ResetPasswordDialog
         open={showResetDialog}

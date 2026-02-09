@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Building, Building2, FileText, Menu } from "lucide-react"
+import { LayoutDashboard, Building, Building2, FileText, Menu, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useAuth } from "@/contexts/AuthContext"
 
 const navigation = [
   { name: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
@@ -14,6 +15,7 @@ const navigation = [
 
 export function Sidebar() {
   const location = useLocation()
+  const { logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const SidebarContent = () => (
@@ -73,14 +75,26 @@ export function Sidebar() {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:pt-20 lg:border-r lg:bg-sidebar lg:border-sidebar-border">
-        <div className="flex-1 px-4 py-6 overflow-y-auto">
+        <div className="flex-1 px-4 py-6 overflow-y-auto flex flex-col justify-between">
           <div className="mb-6">
             <h2 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider px-3 mb-3">
               Navegação
             </h2>
             <SidebarContent />
           </div>
+
+          <div className="mt-auto pt-4 border-t border-sidebar-border/50">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={logout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Sair</span>
+            </Button>
+          </div>
         </div>
+
       </aside>
     </>
   )

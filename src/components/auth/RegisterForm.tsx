@@ -5,7 +5,6 @@ import { registerSchema, type RegisterInput } from "@/lib/validations/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Link, useNavigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
@@ -57,19 +56,19 @@ export function RegisterForm() {
   }
 
   return (
-    <Card className="w-full max-w-md shadow-xl border-border/50">
-      <CardHeader className="space-y-1 pb-4">
+    <div className="w-full max-w-md shadow-xl border-border/50">
+      <div className="space-y-1 pb-4">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold">EA</span>
           </div>
-          <CardTitle className="text-2xl">Criar Conta</CardTitle>
+          <div className="text-2xl">Criar Conta</div>
         </div>
-        <CardDescription>
+        <div>
           Preencha os dados para criar sua conta de engenheiro
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </div>
+      </div>
+      <div>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="nome_completo">Nome Completo</Label>
@@ -213,7 +212,7 @@ export function RegisterForm() {
             </Link>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
