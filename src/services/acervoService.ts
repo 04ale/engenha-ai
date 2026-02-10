@@ -218,6 +218,28 @@ export const acervoService = {
   },
 
   async delete(id: string, workspaceId: string): Promise<void> {
+    // 1. Buscar o acervo para verificar se tem arquivo
+    const acervo = await this.getById(id, workspaceId);
+
+    if (acervo?.arquivo_cat_nome) {
+      try {
+        // Reconstruir o caminho do arquivo
+        const fileExt = acervo.arquivo_cat_nome.split(".").pop();
+        if (fileExt) {
+          const fileName = `${id}.${fileExt}`;
+          const filePath = `${workspaceId}/${id}/${fileName}`;
+
+          await storageService.deleteFile(filePath);
+        }
+      } catch (error) {
+        console.error("Erro ao tentar excluir arquivo do storage:", error);
+        // Não lançar erro aqui para não impedir a exclusão do registro, 
+        // mas logar para auditoria. O usuário não precisa saber de falha de limpeza de arquivo 
+        // se o objetivo principal (excluir o acervo) for cumprido.
+      }
+    }
+
+    // 2. Deletar do banco
     const { error } = await supabase
       .from("acervos")
       .delete()
@@ -226,7 +248,13 @@ export const acervoService = {
 
     if (error) {
       console.error("Erro ao deletar acervo:", error);
-      throw new Error("Erro ao deletar acervo");
+
+      // Tratamento de erro específico para FK
+      if (error.code === '23503') {
+        throw new Error("Não é possível excluir este acervo pois ele possui registros dependentes (como itens de acervo). Remova os itens primeiro ou contate o suporte.");
+      }
+
+      throw new Error(`Erro ao deletar acervo: ${error.message}`);
     }
   },
 

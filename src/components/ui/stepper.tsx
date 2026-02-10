@@ -20,16 +20,16 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
 
           return (
             <React.Fragment key={index}>
-              <div className="flex flex-col items-center flex-1">
+              <div id={`stepper-step-${index}`} className="flex flex-col items-center flex-1">
                 <div
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300",
                     isCompleted &&
-                      "bg-primary border-primary text-primary-foreground",
+                    "bg-primary border-primary text-primary-foreground",
                     isCurrent &&
-                      "bg-primary border-primary text-primary-foreground ring-4 ring-primary/20",
+                    "bg-primary border-primary text-primary-foreground ring-4 ring-primary/20",
                     isPending &&
-                      "bg-background border-muted-foreground/30 text-muted-foreground"
+                    "bg-background border-muted-foreground/30 text-muted-foreground"
                   )}
                 >
                   {isCompleted ? (

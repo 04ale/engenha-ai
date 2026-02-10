@@ -44,7 +44,7 @@ export function exportAcervoToPDF(acervo: Acervo, obra?: Obra | null): void {
       [
         "Localização",
         `${acervo.cidade} - ${acervo.estado}` +
-          (acervo.endereco_obra ? `, ${acervo.endereco_obra}` : ""),
+        (acervo.endereco_obra ? `, ${acervo.endereco_obra}` : ""),
       ],
       [
         "Período",
@@ -116,8 +116,6 @@ export function exportAcervoToPDF(acervo: Acervo, obra?: Obra | null): void {
     doc.setFontSize(14);
     doc.text("Itens do Acervo", 14, currentY);
     currentY += 5;
-
-    console.log(acervo.itens);
 
     // Preparar dados da tabela
     const tableBody = acervo.itens.map((item) => [

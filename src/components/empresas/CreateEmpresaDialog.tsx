@@ -77,9 +77,6 @@ export function CreateEmpresaDialog({
             const { data, error } = await supabase.functions.invoke("consultar-cnpj", {
                 body: { cnpj },
             })
-
-            console.log(data)
-
             if (error) {
                 console.error("Erro na Edge Function:", error)
                 throw error

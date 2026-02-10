@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import type { Acervo } from "@/types/acervo"
 import type { AcervosFilters } from "@/services/acervoService"
+import { TutorialAcervo } from "@/components/common/TutorialAcervo"
 
 export default function ListAcervosPage() {
   const navigate = useNavigate()
@@ -85,7 +86,7 @@ export default function ListAcervosPage() {
   return (
     <DashboardLayout>
       <div className="mb-8 flex items-center justify-between">
-        <div>
+        <div id="acervos-header">
           <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Acervos Técnicos
           </h2>
@@ -93,14 +94,14 @@ export default function ListAcervosPage() {
             Gerencie seus acervos técnicos e CATs
           </p>
         </div>
-        <Button onClick={() => navigate("/app/acervos/novo")} className="shadow-md">
+        <Button id="new-acervo-btn" onClick={() => navigate("/app/acervos/novo")} className="shadow-md">
           <Plus className="h-4 w-4 mr-2" />
           Novo Acervo
         </Button>
       </div>
 
       <div className="space-y-6">
-        <Card className="border-border/50">
+        <Card id="acervos-filters" className="border-border/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Filtros</CardTitle>
           </CardHeader>
@@ -123,14 +124,16 @@ export default function ListAcervosPage() {
           </CardContent>
         </Card>
 
-        <AcervosTable
-          acervos={acervos}
-          loading={loading}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onViewCAT={handleViewCAT}
-        />
+        <div id="acervos-table">
+          <AcervosTable
+            acervos={acervos}
+            loading={loading}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onViewCAT={handleViewCAT}
+          />
+        </div>
       </div>
 
       {showDeleteDialog && selectedAcervo && (
@@ -166,6 +169,7 @@ export default function ListAcervosPage() {
           </Card>
         </div>
       )}
+      <TutorialAcervo />
     </DashboardLayout>
   )
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cpf as cpfValidator } from "cpf-cnpj-validator";
 
 export const registerSchema = z
   .object({
@@ -45,8 +46,21 @@ export const profileSchema = z.object({
   nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   crea: z.string().min(1, "CREA é obrigatório"),
   telefone: z.string().optional(),
+  cpf: z.string().optional().refine((val) => !val || cpfValidator.isValid(val), "CPF inválido"),
+  endereco: z.string().optional(),
   avatar_url: z.string().optional(),
   avatar_nome: z.string().optional(),
+});
+
+export const changePasswordSchema = z.object({
+  nova_senha: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, "Senha deve conter letras e números"),
+  confirmar_senha: z.string(),
+}).refine((data) => data.nova_senha === data.confirmar_senha, {
+  message: "As senhas não coincidem",
+  path: ["confirmar_senha"],
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -58,3 +72,4 @@ export type ResetPasswordConfirmInput = z.infer<
   typeof resetPasswordConfirmSchema
 >;
 export type ProfileInput = z.infer<typeof profileSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

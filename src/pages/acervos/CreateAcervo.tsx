@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { AcervoFormStepByStep } from "@/components/acervos/AcervoFormStepByStep"
+import { TutorialNovoAcervo } from "@/components/common/TutorialNovoAcervo"
 import { acervoService } from "@/services/acervoService"
 import { storageService } from "@/services/storageService"
 import { useAuth } from "@/contexts/AuthContext"
@@ -14,7 +15,6 @@ export default function CreateAcervoPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (data: AcervoInput & { catFile?: File }) => {
-    console.log(data)
     if (!user?.id || !user?.workspace_id) {
       toast.error("Erro: dados do usuário não encontrados")
       return
@@ -80,7 +80,7 @@ export default function CreateAcervoPage() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <h2 id="novo-acervo-title" className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           Novo Acervo Técnico
         </h2>
         <p className="text-muted-foreground">
@@ -95,6 +95,7 @@ export default function CreateAcervoPage() {
           isLoading={isLoading}
         />
       </div>
+      <TutorialNovoAcervo />
     </DashboardLayout>
   )
 }

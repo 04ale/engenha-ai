@@ -5,7 +5,7 @@ import { profileSchema, type ProfileInput } from "@/lib/validations/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Loader2, Camera, Mail, User, FileBadge, Phone, ArrowLeftRight } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
@@ -16,6 +16,9 @@ import { ibgeService, type IBGEUF, type IBGEMunicipio } from "@/services/ibgeSer
 import { Badge } from "@/components/ui/badge"
 import { Select } from "@/components/ui/select"
 import { Trash2, Plus, MapPin } from "lucide-react"
+import { cpf as cpfValidator } from "cpf-cnpj-validator"
+import ChangePasswordForm from "@/components/forms/ChangePasswordForm"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function UserProfilePage() {
     const { user, refreshUser } = useAuth() // Podemos usar login ou checkUser se expormos algo para recarregar o usuario
@@ -30,6 +33,8 @@ export default function UserProfilePage() {
             nome_completo: "",
             crea: "",
             telefone: "",
+            cpf: "",
+            endereco: "",
             avatar_url: "",
             avatar_nome: "",
         },
@@ -45,6 +50,8 @@ export default function UserProfilePage() {
                 nome_completo: user.nome_completo || "",
                 crea: user.crea || "",
                 telefone: user.telefone || "",
+                cpf: user.cpf || "",
+                endereco: user.endereco || "",
                 avatar_url: user.avatar_url || "",
                 avatar_nome: user.avatar_nome || "",
             })
@@ -113,11 +120,52 @@ export default function UserProfilePage() {
         }
     }
 
+
+
     if (!user) {
         return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <DashboardLayout>
+                <div className="mb-8 flex items-center justify-between">
+                    <div>
+                        <Skeleton className="h-9 w-48 mb-2" />
+                        <Skeleton className="h-5 w-64" />
+                    </div>
+                    <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <Skeleton className="h-6 w-48" />
+                            <Skeleton className="h-9 w-32" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col items-center mb-8 gap-4">
+                                <Skeleton className="w-32 h-32 rounded-full" />
+                                <div className="space-y-2 flex flex-col items-center w-full">
+                                    <Skeleton className="h-6 w-48" />
+                                    <Skeleton className="h-4 w-64" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="space-y-2">
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-10 w-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-48" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-24 bg-muted/20 rounded-lg" />
+                        </CardContent>
+                    </Card>
+                </div>
+            </DashboardLayout>
         )
     }
 
@@ -202,6 +250,7 @@ export default function UserProfilePage() {
 
     // --- MFA STATES ---
     const [isMfaModalOpen, setIsMfaModalOpen] = useState(false)
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
     const [mfaData, setMfaData] = useState<{ id: string, secret: string, qr_code: string } | null>(null)
     const [mfaCode, setMfaCode] = useState("")
     const [isMfaEnabled, setIsMfaEnabled] = useState(false)
@@ -346,6 +395,34 @@ export default function UserProfilePage() {
             setMfaFactors(factors)
         } catch (error: any) {
             toast.error(error.message || "Código inválido. Tente novamente.")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const [isMfaVerificationOpen, setIsMfaVerificationOpen] = useState(false)
+
+    const handleMfaVerification = async () => {
+        setIsLoading(true)
+        try {
+            // Get verified factors first, or just list all
+            const { factors } = await authService.getMFAStatus()
+            const factor = factors.find(f => f.status === 'verified')
+
+            if (!factor) {
+                throw new Error("Nenhum fator MFA encontrado.")
+            }
+
+            const { error } = await authService.mfaChallengeAndVerify(factor.id, mfaCode)
+
+            if (error) throw new Error(error)
+
+            toast.success("Verificação concluída! Você pode alterar sua senha agora.")
+            setIsMfaVerificationOpen(false)
+            setMfaCode("")
+            setIsChangePasswordOpen(true)
+        } catch (error: any) {
+            toast.error(error.message || "Código incorreto.")
         } finally {
             setIsLoading(false)
         }
@@ -547,6 +624,49 @@ export default function UserProfilePage() {
                                         </p>
                                     )}
                                 </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="cpf" className="flex items-center gap-2">
+                                        <FileBadge className="w-4 h-4 text-muted-foreground" />
+                                        CPF
+                                    </Label>
+                                    <Input
+                                        id="cpf"
+                                        {...form.register("cpf", {
+                                            onChange: (e) => {
+                                                const formatted = cpfValidator.format(e.target.value);
+                                                e.target.value = formatted;
+                                                form.setValue("cpf", formatted);
+                                            }
+                                        })}
+                                        placeholder="000.000.000-00"
+                                        className="focus-visible:ring-primary"
+                                        maxLength={14}
+                                    />
+                                    {form.formState.errors.cpf && (
+                                        <p className="text-sm text-destructive">
+                                            {form.formState.errors.cpf.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="endereco" className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                                        Endereço
+                                    </Label>
+                                    <Input
+                                        id="endereco"
+                                        {...form.register("endereco")}
+                                        placeholder="Seu endereço completo"
+                                        className="focus-visible:ring-primary"
+                                    />
+                                    {form.formState.errors.endereco && (
+                                        <p className="text-sm text-destructive">
+                                            {form.formState.errors.endereco.message}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="flex gap-3 justify-end pt-4 border-t">
@@ -610,6 +730,32 @@ export default function UserProfilePage() {
                                         <Input
                                             id="telefone-view"
                                             value={user.telefone || "Telefone não informado"}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cpf-view" className="flex items-center gap-2">
+                                            <FileBadge className="w-4 h-4 text-muted-foreground" />
+                                            CPF
+                                        </Label>
+                                        <Input
+                                            id="cpf-view"
+                                            value={user.cpf || "CPF não informado"}
+                                            disabled
+                                            className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="endereco-view" className="flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                                            Endereço
+                                        </Label>
+                                        <Input
+                                            id="endereco-view"
+                                            value={user.endereco || "Endereço não informado"}
                                             disabled
                                             className="bg-muted/50 opacity-100 cursor-default text-foreground border-transparent shadow-none"
                                         />
@@ -713,11 +859,11 @@ export default function UserProfilePage() {
                     </CardContent>
                 </Card>
 
-                {/* SECTION SAFETY / MFA */}
+                {/* SECTION CHANGE PASSWORD */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            Segurança
+                            Segurança da Conta
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -735,6 +881,22 @@ export default function UserProfilePage() {
                             >
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isMfaEnabled ? "Desativar" : "Ativar"}
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                            <div className="space-y-1">
+                                <h3 className="font-medium">Alterar Senha</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Atualize sua senha de acesso.
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsChangePasswordOpen(true)}
+                                disabled={isLoading}
+                            >
+                                Alterar Senha
                             </Button>
                         </div>
                     </CardContent>
@@ -785,6 +947,62 @@ export default function UserProfilePage() {
                                 <Button onClick={handleVerifyMfaDetails} disabled={mfaCode.length < 6 || isLoading}>
                                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                     Verificar e Ativar
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* DIALOG CHANGE PASSWORD */}
+            {isChangePasswordOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                        <CardHeader>
+                            <CardTitle>Alterar Senha</CardTitle>
+                            <CardDescription>Digite sua nova senha abaixo.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChangePasswordForm
+                                onSuccess={() => setIsChangePasswordOpen(false)}
+                                onCancel={() => setIsChangePasswordOpen(false)}
+                                onMfaRequired={() => {
+                                    setIsChangePasswordOpen(false)
+                                    setIsMfaVerificationOpen(true)
+                                }}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* DIALOG MFA VERIFICATION (For AAL2 Upgrade) */}
+            {isMfaVerificationOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                        <CardHeader>
+                            <CardTitle>Verificação de Segurança</CardTitle>
+                            <CardDescription>Digite o código do seu autenticador para continuar.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Código de 6 dígitos</Label>
+                                <Input
+                                    value={mfaCode}
+                                    onChange={(e) => setMfaCode(e.target.value)}
+                                    placeholder="000000"
+                                    className="text-center text-lg tracking-widest"
+                                    maxLength={6}
+                                />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="ghost" onClick={() => {
+                                    setIsMfaVerificationOpen(false)
+                                    setMfaCode("")
+                                }}>Cancelar</Button>
+                                <Button onClick={handleMfaVerification} disabled={mfaCode.length < 6 || isLoading}>
+                                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                    Verificar
                                 </Button>
                             </div>
                         </CardContent>

@@ -75,7 +75,7 @@ export function StepForm({
   return (
     <div className={cn("space-y-8", className)}>
       {/* Progress Bar */}
-      <Card className="border-border/50">
+      <Card id="step-form-progress" className="border-border/50">
         <CardContent className="pt-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
@@ -118,7 +118,7 @@ export function StepForm({
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-6 border-t border-border">
+      <div id="step-form-navigation" className="flex items-center justify-between pt-6 border-t border-border">
         <div>
           {onCancel && (
             <Button

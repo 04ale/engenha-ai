@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { MetricCard } from "@/components/dashboard/MetricCard"
@@ -8,7 +8,6 @@ import { RecentAcervos } from "@/components/dashboard/RecentAcervos"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { useDashboard } from "@/hooks/useDashboard"
 import { Building2, FileText, FileCheck, DollarSign } from "lucide-react"
-import { useMemo } from "react"
 import { obraService } from "@/services/obraService"
 import { acervoService } from "@/services/acervoService"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { authService } from "@/services/authService"
 import { toast } from "sonner"
+import { Tutorial } from "@/components/common/Tutorial"
 
 export default function DashboardPage() {
   const { user, refreshUser } = useAuth()
@@ -130,8 +130,9 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
+      <Tutorial />
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <h2 id="dashboard-title" className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           Dashboard
         </h2>
         <p className="text-muted-foreground">
@@ -141,62 +142,76 @@ export default function DashboardPage() {
 
       {/* Métricas Principais */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <MetricCard
-          title="Total de Obras"
-          description="Obras cadastradas"
-          value={metrics?.totalObras ?? 0}
-          icon={Building2}
-          loading={loading}
-          trend={obrasTrend}
-          trendValue={obrasTrendValue}
-          trendLabel="vs mês anterior"
-          onClick={() => handleCardClick("obras")}
-        />
-        <MetricCard
-          title="Total de Acervos"
-          description="Acervos técnicos"
-          value={metrics?.totalAcervos ?? 0}
-          icon={FileText}
-          loading={loading}
-          trend={acervosTrend}
-          trendValue={acervosTrendValue}
-          trendLabel="vs mês anterior"
-          onClick={() => handleCardClick("acervos")}
-        />
-        <MetricCard
-          title="CATs Registrados"
-          description="Certidões anexadas"
-          value={metrics?.totalCATs ?? 0}
-          icon={FileCheck}
-          loading={loading}
-          onClick={() => handleCardClick("cats")}
-        />
-        <MetricCard
-          title="Valor Total"
-          description="Valor executado"
-          value={
-            metrics?.valorTotalExecutado
-              ? `R$ ${metrics.valorTotalExecutado.toLocaleString("pt-BR", {
-                minimumFractionDigits: 2,
-              })}`
-              : null
-          }
-          icon={DollarSign}
-          loading={loading}
-          trend={valorTrend}
-          trendValue={valorTrendValue}
-          trendLabel="vs mês anterior"
-          onClick={() => handleCardClick("valor")}
-        />
+        <div id="metric-obras">
+          <MetricCard
+            title="Total de Obras"
+            description="Obras cadastradas"
+            value={metrics?.totalObras ?? 0}
+            icon={Building2}
+            loading={loading}
+            trend={obrasTrend}
+            trendValue={obrasTrendValue}
+            trendLabel="vs mês anterior"
+            onClick={() => handleCardClick("obras")}
+          />
+        </div>
+        <div id="metric-acervos">
+          <MetricCard
+            title="Total de Acervos"
+            description="Acervos técnicos"
+            value={metrics?.totalAcervos ?? 0}
+            icon={FileText}
+            loading={loading}
+            trend={acervosTrend}
+            trendValue={acervosTrendValue}
+            trendLabel="vs mês anterior"
+            onClick={() => handleCardClick("acervos")}
+          />
+        </div>
+        <div id="metric-cats">
+          <MetricCard
+            title="CATs Registrados"
+            description="Certidões anexadas"
+            value={metrics?.totalCATs ?? 0}
+            icon={FileCheck}
+            loading={loading}
+            onClick={() => handleCardClick("cats")}
+          />
+        </div>
+        <div id="metric-valor">
+          <MetricCard
+            title="Valor Total"
+            description="Valor executado"
+            value={
+              metrics?.valorTotalExecutado
+                ? `R$ ${metrics.valorTotalExecutado.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                })}`
+                : null
+            }
+            icon={DollarSign}
+            loading={loading}
+            trend={valorTrend}
+            trendValue={valorTrendValue}
+            trendLabel="vs mês anterior"
+            onClick={() => handleCardClick("valor")}
+          />
+        </div>
       </div>
 
       {/* Conteúdo Principal */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <RecentObras obras={recentObras} loading={loading} />
-          <RecentAcervos acervos={recentAcervos} loading={loading} />
+          <div id="recent-obras">
+            <RecentObras obras={recentObras} loading={loading} />
+          </div>
+          <div id="recent-acervos">
+            <RecentAcervos acervos={recentAcervos} loading={loading} />
+          </div>
         </div>
-        <QuickActions />
+        <div id="quick-actions">
+          <QuickActions />
+        </div>
       </div>
 
       {/* Dialogs */}
@@ -247,3 +262,4 @@ export default function DashboardPage() {
     </DashboardLayout>
   )
 }
+

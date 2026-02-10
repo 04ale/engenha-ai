@@ -28,12 +28,8 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterInput) => {
     setIsLoading(true)
-    // alert("DEBUG: RegisterForm onSubmit is running!") // Uncomment this if you want visible proof
-    console.log("DEBUG: RegisterForm onSubmit started")
-    console.log("DEBUG: Calling registerUser", registerUser)
     try {
       const result = await registerUser(data)
-      console.log(result)
 
       if (result.error) {
         toast.error(result.error)

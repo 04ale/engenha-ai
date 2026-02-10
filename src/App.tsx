@@ -20,6 +20,7 @@ import ObraDetailsPage from "@/pages/obras/ObraDetails"
 import ListEmpresasPage from "./pages/empresas/ListEmpresa"
 import CreateEmpresaPage from "./pages/empresas/CreateEmpresa"
 import UserProfilePage from "@/pages/profile/UserProfile"
+import FAQPage from "@/pages/faq/FAQ"
 
 function App() {
 
@@ -51,6 +52,7 @@ function App() {
                     <Route path="empresas/novo" element={<CreateEmpresaPage />} />
                     <Route path="empresas/:id/editar" element={<CreateEmpresaPage />} />
                     <Route path="perfil" element={<UserProfilePage />} />
+                    <Route path="faq" element={<FAQPage />} />
                     <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
                   </Routes>
                 </ProtectedRoute>

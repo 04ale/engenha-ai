@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ObrasTable } from "@/components/obras/ObrasTable"
 import { ObrasFiltersComponent } from "@/components/obras/ObrasFilters"
 import { useObras } from "@/hooks/useObras"
+import { TutorialObra } from "@/components/common/TutorialObra"
 import type { Obra } from "@/types/obra"
 import type { ObrasFilters } from "@/services/obraService"
 
@@ -48,7 +49,7 @@ export default function ListObrasPage() {
   return (
     <DashboardLayout>
       <div className="mb-8 flex items-center justify-between">
-        <div>
+        <div id="obra">
           <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Obras
           </h2>
@@ -56,20 +57,24 @@ export default function ListObrasPage() {
             Gerencie suas obras cadastradas
           </p>
         </div>
-        <Button onClick={() => navigate("/app/obras/novo")} className="shadow-md">
+        <Button id="nova-obra" onClick={() => navigate("/app/obras/novo")} className="shadow-md">
           <Plus className="h-4 w-4 mr-2" />
           Nova Obra
         </Button>
       </div>
 
       <div className="space-y-6">
-        <ObrasFiltersComponent filters={filters} onFiltersChange={setFilters} />
-        <ObrasTable
-          obras={obras}
-          loading={loading}
-          onView={handleView}
-          onDelete={handleDelete}
-        />
+        <div id="obras-filters">
+          <ObrasFiltersComponent filters={filters} onFiltersChange={setFilters} />
+        </div>
+        <div id="obras-table">
+          <ObrasTable
+            obras={obras}
+            loading={loading}
+            onView={handleView}
+            onDelete={handleDelete}
+          />
+        </div>
       </div>
 
       {showDeleteDialog && selectedObra && (
@@ -105,6 +110,7 @@ export default function ListObrasPage() {
           </Card>
         </div>
       )}
+      <TutorialObra />
     </DashboardLayout>
   )
 }

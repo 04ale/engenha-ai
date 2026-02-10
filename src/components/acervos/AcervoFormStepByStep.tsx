@@ -298,46 +298,81 @@ export function AcervoFormStepByStep({
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numero_art">Número da ART</Label>
+                <Label htmlFor="numero_art">
+                  Número da ART <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="numero_art"
                   {...form.register("numero_art")}
                   placeholder="Número da ART"
+                  className={form.formState.errors.numero_art ? "border-destructive" : ""}
                 />
+                {form.formState.errors.numero_art && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.numero_art.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tipo_art">Tipo de ART</Label>
+                <Label htmlFor="tipo_art">
+                  Tipo de ART <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="tipo_art"
                   {...form.register("tipo_art")}
                   placeholder="Tipo de ART"
+                  className={form.formState.errors.tipo_art ? "border-destructive" : ""}
                 />
+                {form.formState.errors.tipo_art && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.tipo_art.message}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="data_art_registro">Data de Registro</Label>
+                <Label htmlFor="data_art_registro">
+                  Data de Registro <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="data_art_registro"
                   type="date"
                   {...form.register("data_art_registro")}
+                  className={form.formState.errors.data_art_registro ? "border-destructive" : ""}
                 />
+                {form.formState.errors.data_art_registro && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.data_art_registro.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="data_art_baixa">Data de Baixa</Label>
+                <Label htmlFor="data_art_baixa">
+                  Data de Baixa <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="data_art_baixa"
                   type="date"
                   {...form.register("data_art_baixa")}
+                  className={form.formState.errors.data_art_baixa ? "border-destructive" : ""}
                 />
+                {form.formState.errors.data_art_baixa && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.data_art_baixa.message}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       ),
+      validation: async () => {
+        return await form.trigger(["numero_art", "tipo_art", "data_art_registro", "data_art_baixa"])
+      },
     },
     {
       title: "Upload do Arquivo CAT",
@@ -444,75 +479,131 @@ export function AcervoFormStepByStep({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="data_conclusao">Data de Conclusão</Label>
+                <Label htmlFor="data_conclusao">
+                  Data de Conclusão <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="data_conclusao"
                   type="date"
                   {...form.register("data_conclusao")}
+                  className={form.formState.errors.data_conclusao ? "border-destructive" : ""}
                 />
+                {form.formState.errors.data_conclusao && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.data_conclusao.message}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contratante_nome">Nome do Contratante</Label>
+              <Label htmlFor="contratante_nome">
+                Nome do Contratante <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="contratante_nome"
                 {...form.register("contratante_nome")}
                 placeholder="Nome ou razão social"
+                className={form.formState.errors.contratante_nome ? "border-destructive" : ""}
               />
+              {form.formState.errors.contratante_nome && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.contratante_nome.message}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contratante_tipo">Tipo</Label>
+                <Label htmlFor="contratante_tipo">
+                  Tipo <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   id="contratante_tipo"
                   {...form.register("contratante_tipo")}
+                  className={form.formState.errors.contratante_tipo ? "border-destructive" : ""}
                 >
                   <option value="">Selecione</option>
                   <option value="pessoa_fisica">Pessoa Física</option>
                   <option value="pessoa_juridica">Pessoa Jurídica</option>
                   <option value="orgao_publico">Órgão Público</option>
                 </Select>
+                {form.formState.errors.contratante_tipo && (
+                  <p className="text-sm text-destructive">
+                    Insira um tipo de contratante
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contratante_cnpj">CNPJ/CPF</Label>
+                <Label htmlFor="contratante_cnpj">
+                  CNPJ/CPF <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="contratante_cnpj"
                   {...form.register("contratante_cnpj")}
                   placeholder="00.000.000/0000-00"
+                  className={form.formState.errors.contratante_cnpj ? "border-destructive" : ""}
                 />
+                {form.formState.errors.contratante_cnpj && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.contratante_cnpj.message}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numero_contrato">Número do Contrato</Label>
+                <Label htmlFor="numero_contrato">
+                  Número do Contrato <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="numero_contrato"
                   {...form.register("numero_contrato")}
                   placeholder="Número do contrato"
+                  className={form.formState.errors.numero_contrato ? "border-destructive" : ""}
                 />
+                {form.formState.errors.numero_contrato && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.numero_contrato.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="valor_total">Valor Total (R$)</Label>
+                <Label htmlFor="valor_total">
+                  Valor Total (R$) <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="valor_total"
                   type="number"
                   step="0.01"
                   min="0"
-                  {...form.register("valor_total", { valueAsNumber: true })}
+                  {...form.register("valor_total")}
                   placeholder="0.00"
+                  className={form.formState.errors.valor_total ? "border-destructive" : ""}
                 />
+                {form.formState.errors.valor_total && (
+                  <p className="text-sm text-destructive">
+                    Insira um valor maior ou igual a zero
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       ),
       validation: async () => {
-        return await form.trigger("data_inicio")
+        return await form.trigger([
+          "data_inicio",
+          "data_conclusao",
+          "contratante_nome",
+          "contratante_tipo",
+          "contratante_cnpj",
+          "numero_contrato",
+          "valor_total"
+        ])
       },
     },
   ]

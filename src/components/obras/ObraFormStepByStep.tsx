@@ -135,9 +135,8 @@ export function ObraFormStepByStep({
           </CardContent>
         </Card>
       ),
-      validation: () => {
-        form.trigger("descricao_obra")
-        return !form.formState.errors.descricao_obra
+      validation: async () => {
+        return await form.trigger("descricao_obra")
       },
     },
     {
@@ -194,9 +193,8 @@ export function ObraFormStepByStep({
           </CardContent>
         </Card>
       ),
-      validation: () => {
-        form.trigger(["cidade", "estado"])
-        return !form.formState.errors.cidade && !form.formState.errors.estado
+      validation: async () => {
+        return await form.trigger(["cidade", "estado"])
       },
     },
     {
@@ -224,20 +222,27 @@ export function ObraFormStepByStep({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="data_conclusao">Data de Conclusão</Label>
+                <Label htmlFor="data_conclusao">
+                  Data de Conclusão <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="data_conclusao"
                   type="date"
                   {...form.register("data_conclusao")}
+                  className={form.formState.errors.data_conclusao ? "border-destructive" : ""}
                 />
+                {form.formState.errors.data_conclusao && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.data_conclusao.message}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       ),
-      validation: () => {
-        form.trigger("data_inicio")
-        return !form.formState.errors.data_inicio
+      validation: async () => {
+        return await form.trigger(["data_inicio", "data_conclusao"])
       },
     },
     {
@@ -247,45 +252,72 @@ export function ObraFormStepByStep({
         <>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="pt-6 space-y-4">
-              <div className="flex items-center space-x-2">
-                <Select {...form.register("contratante_nome")}>
-                  <option value="" disabled>Selecione uma empresa</option>
-                  {empresas.map((empresa) => (
-                    <option key={empresa.id} value={empresa.nome}>
-                      {empresa.nome}
-                    </option>
-                  ))}
-                </Select>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setIsCreateEmpresaOpen(true)}
-                >
-                  Adicionar Empresa
-                </Button>
+              <div className="flex flex-col space-y-2">
+                <Label>Contratante <span className="text-destructive">*</span></Label>
+                <div className="flex items-center space-x-2">
+                  <Select
+                    {...form.register("contratante_nome")}
+                    className={form.formState.errors.contratante_nome ? "border-destructive" : ""}
+                  >
+                    <option value="" disabled>Selecione uma empresa</option>
+                    {empresas.map((empresa) => (
+                      <option key={empresa.id} value={empresa.nome}>
+                        {empresa.nome}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setIsCreateEmpresaOpen(true)}
+                  >
+                    Adicionar
+                  </Button>
+                </div>
+                {form.formState.errors.contratante_nome && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.contratante_nome.message}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contratante_tipo">Tipo</Label>
+                  <Label htmlFor="contratante_tipo">
+                    Tipo <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     id="contratante_tipo"
                     {...form.register("contratante_tipo")}
+                    className={form.formState.errors.contratante_tipo ? "border-destructive" : ""}
                   >
                     <option value="">Selecione</option>
                     <option value="pessoa_fisica">Pessoa Física</option>
                     <option value="pessoa_juridica">Pessoa Jurídica</option>
                     <option value="orgao_publico">Órgão Público</option>
                   </Select>
+                  {form.formState.errors.contratante_tipo && (
+                    <p className="text-sm text-destructive">
+                      Escolha um tipo de contratante
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contratante_cnpj">CNPJ/CPF</Label>
+                  <Label htmlFor="contratante_cnpj">
+                    CNPJ/CPF <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="contratante_cnpj"
                     {...form.register("contratante_cnpj")}
                     placeholder="00.000.000/0000-00"
+                    className={form.formState.errors.contratante_cnpj ? "border-destructive" : ""}
                   />
+                  {form.formState.errors.contratante_cnpj && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.contratante_cnpj.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -297,6 +329,9 @@ export function ObraFormStepByStep({
           />
         </>
       ),
+      validation: async () => {
+        return await form.trigger(["contratante_nome", "contratante_tipo", "contratante_cnpj"])
+      },
     },
     {
       title: "Valores e Contrato",
@@ -306,22 +341,32 @@ export function ObraFormStepByStep({
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numero_contrato">Número do Contrato</Label>
+                <Label htmlFor="numero_contrato">
+                  Número do Contrato <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="numero_contrato"
                   {...form.register("numero_contrato")}
                   placeholder="Número do contrato"
+                  className={form.formState.errors.numero_contrato ? "border-destructive" : ""}
                 />
+                {form.formState.errors.numero_contrato && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.numero_contrato.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="valor_total">Valor Total (R$)</Label>
+                <Label htmlFor="valor_total">
+                  Valor Total (R$) <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="valor_total"
                   type="number"
                   step="0.01"
                   min="0"
-                  {...form.register("valor_total", { valueAsNumber: true })}
+                  {...form.register("valor_total")}
                   placeholder="0.00"
                   className={form.formState.errors.valor_total ? "border-destructive" : ""}
                 />
@@ -335,6 +380,9 @@ export function ObraFormStepByStep({
           </CardContent>
         </Card>
       ),
+      validation: async () => {
+        return await form.trigger(["numero_contrato", "valor_total"])
+      },
     },
   ]
 

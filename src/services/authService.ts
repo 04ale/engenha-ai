@@ -15,6 +15,8 @@ export interface User {
   workspace_id?: string;
   crea?: string;
   telefone?: string;
+  cpf?: string;
+  endereco?: string;
   avatar_url?: string;
   avatar_nome?: string;
   is_public?: boolean;
@@ -158,6 +160,8 @@ export const authService = {
         workspace_id: profile.workspace_id,
         crea: profile.crea,
         telefone: profile.telefone,
+        cpf: profile.cpf,
+        endereco: profile.endereco,
         avatar_url: profile.avatar_url,
         avatar_nome: profile.avatar_nome,
         is_public: profile.is_public,
@@ -277,6 +281,20 @@ export const authService = {
     }
   },
 
+  // --- UPDATE PASSWORD ---
+  async updatePassword(newPassword: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      return { error: translateAuthError(error.message) };
+    }
+  },
+
   // --- UPDATE PROFILE ---
 
   async updateProfile(
@@ -291,6 +309,8 @@ export const authService = {
           nome_completo: data.nome_completo,
           crea: data.crea,
           telefone: data.telefone,
+          cpf: data.cpf,
+          endereco: data.endereco,
           avatar_url: data.avatar_url,
           avatar_nome: data.avatar_nome,
         })
@@ -322,6 +342,8 @@ export const authService = {
               nome: data.nome_completo, // Nome da coluna é 'nome'
               crea: data.crea,
               telefone: data.telefone,
+              cpf: data.cpf,
+              endereco: data.endereco,
               avatar_url: data.avatar_url,
               avatar_name: data.avatar_nome, // Nome da coluna é 'avatar_name'
             })
@@ -339,6 +361,8 @@ export const authService = {
         workspace_id: profileData.workspace_id,
         crea: profileData.crea,
         telefone: profileData.telefone,
+        cpf: profileData.cpf,
+        endereco: profileData.endereco,
         avatar_url: profileData.avatar_url,
         avatar_nome: profileData.avatar_nome,
         is_public: profileData.is_public,

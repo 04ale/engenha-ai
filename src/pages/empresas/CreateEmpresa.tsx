@@ -90,9 +90,6 @@ export default function CreateEmpresaPage() {
             // Pegamos a sessão atual direto do auth
             const { data: { session } } = await supabase.auth.getSession();
 
-            // Debug: Veja no console se isso imprime o token ou 'null'
-            console.log("Sessão atual:", session);
-
             if (!session) {
                 toast.error("Sessão expirada. Faça login novamente.");
                 return;
@@ -106,7 +103,6 @@ export default function CreateEmpresaPage() {
                     Authorization: `Bearer ${session.access_token}`
                 }
             });
-            console.log(data)
 
             if (error) {
                 // Se o erro for 401 aqui, o token está inválido ou a função rejeitou

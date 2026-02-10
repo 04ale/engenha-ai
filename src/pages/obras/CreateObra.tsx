@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { ObraFormStepByStep } from "@/components/obras/ObraFormStepByStep"
+import { TutorialNovaObra } from "@/components/common/TutorialNovaObra"
 import { obraService } from "@/services/obraService"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
@@ -44,7 +45,7 @@ export default function CreateObraPage() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <h2 id="nova-obra-title" className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           Nova Obra
         </h2>
         <p className="text-muted-foreground">
@@ -59,6 +60,7 @@ export default function CreateObraPage() {
           isLoading={isLoading}
         />
       </div>
+      <TutorialNovaObra />
     </DashboardLayout>
   )
 }

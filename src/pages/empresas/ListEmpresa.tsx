@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Empresa } from "@/types/empresa";
+import { TutorialEmpresa } from "@/components/common/TutorialEmpresa";
 
 export default function ListEmpresasPage() {
     const { empresas, loading, deleteEmpresa } = useEmpresas()
@@ -40,7 +41,7 @@ export default function ListEmpresasPage() {
     return (
         <DashboardLayout>
             <div className="mb-8 flex items-center justify-between">
-                <div>
+                <div id="empresas-header">
                     <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                         Empresas
                     </h2>
@@ -48,7 +49,7 @@ export default function ListEmpresasPage() {
                         Gerencie suas empresas cadastradas
                     </p>
                 </div>
-                <Button onClick={() => nav("/app/empresas/novo")} className="shadow-md">
+                <Button id="new-empresa-btn" onClick={() => nav("/app/empresas/novo")} className="shadow-md">
                     <Plus className="h-4 w-4 mr-2" />
                     Nova Empresa
                 </Button>
@@ -64,7 +65,7 @@ export default function ListEmpresasPage() {
                     <p className="text-muted-foreground">Nenhuma empresa cadastrada</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="empresas-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {empresas.map((empresa) => (
                         <Card key={empresa.id} className="shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
                             <CardHeader>
@@ -133,6 +134,8 @@ export default function ListEmpresasPage() {
                     </Card>
                 </div>
             )}
+
+            <TutorialEmpresa />
         </DashboardLayout >
     )
 }

@@ -38,12 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let currentUser = await authService.getCurrentUser();
 
       if (currentUser) {
-        console.log("✅ Usuário carregado com sucesso:", currentUser.email);
         setUser(currentUser);
         setLoading(false);
       } else {
         if (retryCount < 5) {
-          console.warn(`⚠️ Perfil não encontrado. Tentativa ${retryCount + 1}/5...`);
           setTimeout(() => {
             checkUser(retryCount + 1);
           }, 500);
