@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
-import { cn } from "~/lib/utils"
+import { cn } from "@/lib/utils"
 
 export interface LightWavesBackgroundProps {
   className?: string
@@ -42,7 +42,7 @@ export function LightWavesBackground({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesRef = useRef<Wave[]>([])
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number>(0)
   const startTimeRef = useRef(Date.now())
 
   const initWaves = useCallback(
@@ -155,8 +155,8 @@ export function LightWavesBackground({
             wave.y +
             Math.sin(x * wave.frequency + time * wave.speed + wave.phase) * wave.amplitude +
             Math.sin(x * wave.frequency * 0.5 + time * wave.speed * 0.7 + wave.phase * 1.3) *
-              wave.amplitude *
-              0.5
+            wave.amplitude *
+            0.5
 
           if (x === 0) {
             ctx.moveTo(x, y)

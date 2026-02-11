@@ -23,7 +23,7 @@ interface ObraFormProps {
 export function ObraForm({ obra, onSubmit, onCancel, isLoading: externalLoading = false }: ObraFormProps) {
   const { user } = useAuth()
   const form = useForm<ObraInput>({
-    resolver: zodResolver(obraSchema),
+    resolver: zodResolver(obraSchema) as any,
     defaultValues: obra
       ? {
         descricao_obra: obra.descricao_obra,
@@ -65,11 +65,11 @@ export function ObraForm({ obra, onSubmit, onCancel, isLoading: externalLoading 
 
     try {
       if (obra) {
-        await obraService.update(obra.id, data, user.workspace_id)
+        await obraService.update(obra.id, data as unknown as ObraInput, user.workspace_id)
         toast.success("Obra atualizada com sucesso!")
       } else {
         await obraService.create(
-          data,
+          data as unknown as ObraInput,
           user.id,
           user.workspace_id,
           user.id, // Assumindo user como engenheiro para MVP
@@ -77,7 +77,7 @@ export function ObraForm({ obra, onSubmit, onCancel, isLoading: externalLoading 
         )
         toast.success("Obra criada com sucesso!")
       }
-      await onSubmit(data)
+      await onSubmit(data as unknown as ObraInput)
     } catch (error) {
       console.error(error)
       toast.error("Erro ao salvar obra")

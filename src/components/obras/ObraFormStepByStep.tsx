@@ -31,7 +31,7 @@ export function ObraFormStepByStep({
   const [isCreateEmpresaOpen, setIsCreateEmpresaOpen] = useState(false)
 
   const form = useForm<ObraInput>({
-    resolver: zodResolver(obraSchema),
+    resolver: zodResolver(obraSchema) as any,
     defaultValues: obra
       ? {
         descricao_obra: obra.descricao_obra,
