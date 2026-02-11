@@ -31,7 +31,7 @@ export default function HeroSection() {
 
                 <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6 text-foreground">
                     Gestão Inteligente de <br />
-                    <span className="bg-linear-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent animate-gradient-x">
+                    <span className="bg-linear-to-r from-primary via-violet-700 to-primary bg-clip-text text-transparent animate-gradient-x">
                         Acervos Técnicos
                     </span>
                 </h1>

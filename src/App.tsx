@@ -21,6 +21,7 @@ import ListEmpresasPage from "./pages/empresas/ListEmpresa"
 import CreateEmpresaPage from "./pages/empresas/CreateEmpresa"
 import UserProfilePage from "@/pages/profile/UserProfile"
 import FAQPage from "@/pages/faq/FAQ"
+import PlansPage from "@/pages/landing/PlansPage"
 
 function App() {
 
@@ -54,10 +55,12 @@ function App() {
                     <Route path="perfil" element={<UserProfilePage />} />
                     <Route path="faq" element={<FAQPage />} />
                     <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+                    <Route path="planos" element={<PlansPage />} />
                   </Routes>
                 </ProtectedRoute>
               }
             />
+
           </Routes>
           <Toaster position="top-right" />
         </BrowserRouter>

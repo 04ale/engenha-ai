@@ -9,6 +9,13 @@ import { toast } from "sonner"
 import { Link, useNavigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
 import { authService } from "@/services/authService"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -52,19 +59,19 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="w-full max-w-md shadow-xl border-border/50">
-      <div className="space-y-1 pb-4">
+    <Card className="w-full max-w-md shadow-xl border-border/50">
+      <CardHeader>
         <div className="flex items-center gap-2 mb-2">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold">EA</span>
           </div>
-          <div className="text-2xl">Criar Conta</div>
+          <CardTitle className="text-2xl">Criar Conta</CardTitle>
         </div>
-        <div>
+        <CardDescription>
           Preencha os dados para criar sua conta de engenheiro
-        </div>
-      </div>
-      <div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="nome_completo">Nome Completo</Label>
@@ -208,7 +215,7 @@ export function RegisterForm() {
             </Link>
           </div>
         </form>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

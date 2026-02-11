@@ -12,6 +12,13 @@ import { Loader2 } from "lucide-react"
 import { ResetPasswordDialog } from "./ResetPasswordDialog"
 import { useAuth } from "@/contexts/AuthContext"
 import { authService } from "@/services/authService"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -49,19 +56,19 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="w-full max-w-md shadow-xl border-border/50">
-        <div className="space-y-1 pb-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold">EA</span>
             </div>
-            <div className="text-2xl">Login</div>
+            <CardTitle className="text-2xl">Login</CardTitle>
           </div>
-          <div>
+          <CardDescription>
             Entre com suas credenciais para acessar o sistema
-          </div>
-        </div>
-        <div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -172,8 +179,8 @@ export function LoginForm() {
               </Link>
             </div>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <ResetPasswordDialog
         open={showResetDialog}

@@ -1,6 +1,8 @@
 import type { Obra, CreateObraInput, UpdateObraInput } from "@/types/obra";
 import { supabase } from "@/lib/supabase/client";
 
+import { acervoService } from "./acervoService";
+
 export interface ObrasFilters {
   cidade?: string;
   estado?: string;
@@ -107,6 +109,17 @@ export const obraService = {
   },
 
   async delete(id: string, workspaceId: string): Promise<void> {
+    try {
+      const acervos = await acervoService.listByObra(id, workspaceId);
+
+      await Promise.all(
+        acervos.map((acervo) => acervoService.delete(acervo.id, workspaceId)),
+      );
+    } catch (error) {
+      console.error("Erro ao deletar acervos vinculados:", error);
+      throw error;
+    }
+
     const { error } = await supabase
       .from("obras")
       .delete()
