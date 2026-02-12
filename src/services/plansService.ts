@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export interface Plan {
     id: string;
@@ -26,5 +27,16 @@ export const plansService = {
             features: plan.features,
             isPopular: plan.is_popular,
         }));
+    },
+
+    async cancelSubscription() {
+        if (!confirm("Tem certeza que deseja cancelar a renovação automática?")) return
+        const { error } = await supabase.functions.invoke('cancel-plan')
+        if (error) {
+            toast.error("Erro ao cancelar: " + error.message)
+        } else {
+            toast.success("Assinatura cancelada! Você ainda tem acesso até o fim do mês.")
+            window.location.reload()
+        }
     }
 }

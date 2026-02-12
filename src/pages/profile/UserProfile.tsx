@@ -20,6 +20,7 @@ import { Trash2, Plus, MapPin } from "lucide-react"
 import { cpf as cpfValidator } from "cpf-cnpj-validator"
 import ChangePasswordForm from "@/components/forms/ChangePasswordForm"
 import { Skeleton } from "@/components/ui/skeleton"
+import { plansService } from "@/services/plansService"
 
 export default function UserProfilePage() {
     const { user, refreshUser } = useAuth() // Podemos usar login ou checkUser se expormos algo para recarregar o usuario
@@ -28,6 +29,7 @@ export default function UserProfilePage() {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
+    const { cancelSubscription } = plansService
 
     const form = useForm<ProfileInput>({
         resolver: zodResolver(profileSchema),
@@ -790,12 +792,22 @@ export default function UserProfilePage() {
                                     Gerencie sua assinatura e acesse recursos exclusivos.
                                 </p>
                             </div>
-                            <Button
-                                onClick={() => navigate("/app/planos")}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0"
-                            >
-                                {user?.plan && user.plan !== "Gratuito" ? "Gerenciar Assinatura" : "Fazer Upgrade"}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                                {user?.plan && user.plan !== "Gratuito" && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => cancelSubscription()}
+                                    >
+                                        Cancelar Assinatura
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={() => navigate("/app/planos")}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0"
+                                >
+                                    {user?.plan && user.plan !== "Gratuito" ? "Gerenciar Assinatura" : "Fazer Upgrade"}
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
