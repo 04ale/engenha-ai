@@ -9,7 +9,7 @@ export async function checkout(priceId: string) {
     throw new Error("Usuário não autenticado");
   }
 
-  const returnUrl = window.location.origin + "/dashboard";
+  const returnUrl = window.location.origin + "/app/pagamento-retorno";
 
   const { data, error } = await supabase.functions.invoke("stripe-checkout", {
     body: {

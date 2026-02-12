@@ -234,8 +234,8 @@ export const acervoService = {
         }
       } catch (error) {
         console.error("Erro ao tentar excluir arquivo do storage:", error);
-        // Não lançar erro aqui para não impedir a exclusão do registro,
-        // mas logar para auditoria. O usuário não precisa saber de falha de limpeza de arquivo
+        // Não lançar erro aqui para não impedir a exclusão do registro, 
+        // mas logar para auditoria. O usuário não precisa saber de falha de limpeza de arquivo 
         // se o objetivo principal (excluir o acervo) for cumprido.
       }
     }
@@ -251,10 +251,8 @@ export const acervoService = {
       console.error("Erro ao deletar acervo:", error);
 
       // Tratamento de erro específico para FK
-      if (error.code === "23503") {
-        throw new Error(
-          "Não é possível excluir este acervo pois ele possui registros dependentes (como itens de acervo). Remova os itens primeiro ou contate o suporte.",
-        );
+      if (error.code === '23503') {
+        throw new Error("Não é possível excluir este acervo pois ele possui registros dependentes (como itens de acervo). Remova os itens primeiro ou contate o suporte.");
       }
 
       throw new Error(`Erro ao deletar acervo: ${error.message}`);

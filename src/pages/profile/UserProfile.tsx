@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { profileSchema, type ProfileInput } from "@/lib/validations/auth"
@@ -22,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function UserProfilePage() {
     const { user, refreshUser } = useAuth() // Podemos usar login ou checkUser se expormos algo para recarregar o usuario
+    const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -772,6 +774,32 @@ export default function UserProfilePage() {
                     </CardContent>
                 </Card>
 
+                {/* SECTION PLAN */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            💎
+                            Assinatura e Plano
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+                            <div className="space-y-1">
+                                <h3 className="font-medium text-lg text-primary">{user?.plan || "Plano Gratuito"}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Gerencie sua assinatura e acesse recursos exclusivos.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => navigate("/app/planos")}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0"
+                            >
+                                {user?.plan && user.plan !== "Gratuito" ? "Gerenciar Assinatura" : "Fazer Upgrade"}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* SECTION LOCATIONS */}
                 <Card>
                     <CardHeader>
@@ -858,6 +886,7 @@ export default function UserProfilePage() {
                         </div>
                     </CardContent>
                 </Card>
+
 
                 {/* SECTION CHANGE PASSWORD */}
                 <Card>

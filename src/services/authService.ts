@@ -20,6 +20,7 @@ export interface User {
   avatar_url?: string;
   avatar_nome?: string;
   is_public?: boolean;
+  plan?: string;
 }
 
 export const authService = {
@@ -165,6 +166,7 @@ export const authService = {
         avatar_url: profile.avatar_url,
         avatar_nome: profile.avatar_nome,
         is_public: profile.is_public,
+        plan: await this.getUserPlan(session.user.id),
       };
     } catch (error) {
       return null;
@@ -598,6 +600,32 @@ export const authService = {
       return { error: null };
     } catch (error: any) {
       return { error: translateAuthError(error.message) };
+    }
+  },
+  async getUserPlan(userId: string): Promise<string> {
+    try {
+      // 1. Busca na tabela de subscriptions
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plano_id")
+        .eq("user_id", userId)
+        .single();
+
+
+      if (!subscription?.plano_id) return "Gratuito";
+
+      // 2. Busca o nome do plano
+      const { data: plano } = await supabase
+        .from("planos")
+        .select("name")
+        .eq("id", subscription.plano_id)
+        .single();
+
+
+      return plano?.name || "Gratuito";
+    } catch (error) {
+      console.error("Erro ao buscar plano:", error);
+      return "Gratuito";
     }
   },
 };

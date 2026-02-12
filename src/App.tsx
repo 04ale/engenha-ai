@@ -22,6 +22,7 @@ import CreateEmpresaPage from "./pages/empresas/CreateEmpresa"
 import UserProfilePage from "@/pages/profile/UserProfile"
 import FAQPage from "@/pages/faq/FAQ"
 import PlansPage from "@/pages/landing/PlansPage"
+import PaymentReturnPage from "@/pages/payment/PaymentReturnPage"
 
 function App() {
 
@@ -54,6 +55,7 @@ function App() {
                     <Route path="empresas/:id/editar" element={<CreateEmpresaPage />} />
                     <Route path="perfil" element={<UserProfilePage />} />
                     <Route path="faq" element={<FAQPage />} />
+                    <Route path="pagamento-retorno" element={<PaymentReturnPage />} />
                     <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
                     <Route path="planos" element={<PlansPage />} />
                   </Routes>
