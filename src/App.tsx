@@ -23,6 +23,7 @@ import UserProfilePage from "@/pages/profile/UserProfile"
 import FAQPage from "@/pages/faq/FAQ"
 import PlansPage from "@/pages/landing/PlansPage"
 import PaymentReturnPage from "@/pages/payment/PaymentReturnPage"
+import PortfolioGenerator from "./pages/portifolio/PortifolioGenerator"
 
 function App() {
 
@@ -56,6 +57,7 @@ function App() {
                     <Route path="perfil" element={<UserProfilePage />} />
                     <Route path="faq" element={<FAQPage />} />
                     <Route path="pagamento-retorno" element={<PaymentReturnPage />} />
+                    <Route path="portfolio" element={<PortfolioGenerator />} />
                     <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
                     <Route path="planos" element={<PlansPage />} />
                   </Routes>

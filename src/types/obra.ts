@@ -24,6 +24,7 @@ export interface Obra {
   created_at: string;
   updated_at: string;
   is_public?: boolean | null;
+  categorias?: string[] | null;
 }
 
 export interface CreateObraInput {

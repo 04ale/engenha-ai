@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Building, Building2, FileText, Menu, LogOut, HelpCircle } from "lucide-react"
+import { LayoutDashboard, Building, Building2, FileText, Menu, LogOut, HelpCircle, BriefcaseBusiness } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Obras", href: "/app/obras", icon: Building2 },
   { name: "Acervos", href: "/app/acervos", icon: FileText },
   { name: "Empresas", href: "/app/empresas", icon: Building },
+  { name: "Portfolio", href: "/app/portfolio", icon: BriefcaseBusiness },
   { name: "FAQ", href: "/app/faq", icon: HelpCircle }
 ]
 

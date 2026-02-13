@@ -146,6 +146,11 @@ export const acervoService = {
       }
     }
 
+    // 3. Sincronizar categorias da Obra se houver obra vinculada
+    if (newAcervo.obra_id) {
+      await this.syncObraCategorias(newAcervo.obra_id, workspaceId);
+    }
+
     // Retornar acervo completo
     return (await this.getById(newAcervo.id, workspaceId)) as Acervo;
   },
@@ -215,7 +220,13 @@ export const acervoService = {
       }
     }
 
-    return (await this.getById(id, workspaceId)) as Acervo;
+    // 3. Sincronizar categorias da Obra se houver obra vinculada
+    const currentAcervo = await this.getById(id, workspaceId);
+    if (currentAcervo?.obra_id) {
+      await this.syncObraCategorias(currentAcervo.obra_id, workspaceId);
+    }
+
+    return currentAcervo as Acervo;
   },
 
   async delete(id: string, workspaceId: string): Promise<void> {
@@ -234,8 +245,8 @@ export const acervoService = {
         }
       } catch (error) {
         console.error("Erro ao tentar excluir arquivo do storage:", error);
-        // Não lançar erro aqui para não impedir a exclusão do registro, 
-        // mas logar para auditoria. O usuário não precisa saber de falha de limpeza de arquivo 
+        // Não lançar erro aqui para não impedir a exclusão do registro,
+        // mas logar para auditoria. O usuário não precisa saber de falha de limpeza de arquivo
         // se o objetivo principal (excluir o acervo) for cumprido.
       }
     }
@@ -251,8 +262,10 @@ export const acervoService = {
       console.error("Erro ao deletar acervo:", error);
 
       // Tratamento de erro específico para FK
-      if (error.code === '23503') {
-        throw new Error("Não é possível excluir este acervo pois ele possui registros dependentes (como itens de acervo). Remova os itens primeiro ou contate o suporte.");
+      if (error.code === "23503") {
+        throw new Error(
+          "Não é possível excluir este acervo pois ele possui registros dependentes (como itens de acervo). Remova os itens primeiro ou contate o suporte.",
+        );
       }
 
       throw new Error(`Erro ao deletar acervo: ${error.message}`);
@@ -313,6 +326,70 @@ export const acervoService = {
       .update({ updated_at: new Date().toISOString() })
       .eq("id", acervoId);
 
+    if (currentAcervo.obra_id) {
+      await this.syncObraCategorias(currentAcervo.obra_id, workspaceId);
+    }
+
     return (await this.getById(acervoId, workspaceId)) as Acervo;
+  },
+
+  async syncObraCategorias(obraId: string, workspaceId: string): Promise<void> {
+    if (!obraId) return;
+
+    try {
+      // 1. Buscar todos os acervos desta obra
+      const { data: acervos, error: acervosError } = await supabase
+        .from("acervos")
+        .select("id")
+        .eq("obra_id", obraId)
+        .eq("workspace_id", workspaceId);
+
+      if (acervosError) {
+        console.error(
+          "Erro ao sincronizar categorias (buscar acervos):",
+          acervosError,
+        );
+        return;
+      }
+
+      if (!acervos || acervos.length === 0) return;
+
+      const acervoIds = acervos.map((a) => a.id);
+
+      // 2. Buscar itens destes acervos
+      const { data: itens, error: itensError } = await supabase
+        .from("acervo_itens")
+        .select("categoria")
+        .in("acervo_id", acervoIds);
+
+      if (itensError) {
+        console.error(
+          "Erro ao sincronizar categorias (buscar itens):",
+          itensError,
+        );
+        return;
+      }
+
+      // 3. Extrair categorias únicas e não nulas
+      const categorias = Array.from(
+        new Set(
+          itens
+            ?.map((i: any) => i.categoria)
+            .filter((c: any) => c && typeof c === "string" && c.trim() !== ""),
+        ),
+      ).sort();
+
+      // 4. Atualizar Obra
+      const { error: updateError } = await supabase
+        .from("obras")
+        .update({ categorias })
+        .eq("id", obraId);
+
+      if (updateError) {
+        console.error("Erro ao atualizar categorias da obra:", updateError);
+      }
+    } catch (error) {
+      console.error("Erro desconhecido ao sincronizar categorias:", error);
+    }
   },
 };
