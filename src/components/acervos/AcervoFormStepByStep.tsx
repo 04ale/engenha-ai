@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { acervoSchema, type AcervoInput } from "@/lib/validations/acervo"
 import { StepForm, type Step } from "@/components/forms/StepForm"
@@ -43,7 +43,7 @@ export function AcervoFormStepByStep({
   const { obras } = useObras()
 
   const form = useForm<AcervoInput>({
-    resolver: zodResolver(acervoSchema),
+    resolver: zodResolver(acervoSchema) as Resolver<AcervoInput>,
     defaultValues: acervo
       ? {
         obra_id: acervo.obra_id || "",

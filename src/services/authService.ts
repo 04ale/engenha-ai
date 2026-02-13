@@ -21,6 +21,9 @@ export interface User {
   avatar_nome?: string;
   is_public?: boolean;
   plan?: string;
+  subscription_status?: string;
+  subscription_cancel_at_period_end?: boolean;
+  subscription_end_date?: string;
 }
 
 export const authService = {
@@ -166,7 +169,7 @@ export const authService = {
         avatar_url: profile.avatar_url,
         avatar_nome: profile.avatar_nome,
         is_public: profile.is_public,
-        plan: await this.getUserPlan(session.user.id),
+        ...(await this.getUserSubscriptionDetails(session.user.id)),
       };
     } catch (error) {
       return null;
@@ -602,17 +605,23 @@ export const authService = {
       return { error: translateAuthError(error.message) };
     }
   },
-  async getUserPlan(userId: string): Promise<string> {
+  async getUserSubscriptionDetails(userId: string): Promise<{
+    plan: string;
+    subscription_status?: string;
+    subscription_cancel_at_period_end?: boolean;
+    subscription_end_date?: string;
+  }> {
     try {
       // 1. Busca na tabela de subscriptions
       const { data: subscription } = await supabase
         .from("subscriptions")
-        .select("plano_id")
+        .select("plano_id, status, cancel_at_period_end, current_period_end")
         .eq("user_id", userId)
+        .order("created_at", { ascending: false }) // Get the latest one
+        .limit(1)
         .single();
 
-
-      if (!subscription?.plano_id) return "Gratuito";
+      if (!subscription?.plano_id) return { plan: "Gratuito" };
 
       // 2. Busca o nome do plano
       const { data: plano } = await supabase
@@ -621,11 +630,15 @@ export const authService = {
         .eq("id", subscription.plano_id)
         .single();
 
-
-      return plano?.name || "Gratuito";
+      return {
+        plan: plano?.name || "Gratuito",
+        subscription_status: subscription.status,
+        subscription_cancel_at_period_end: subscription.cancel_at_period_end,
+        subscription_end_date: subscription.current_period_end,
+      };
     } catch (error) {
       console.error("Erro ao buscar plano:", error);
-      return "Gratuito";
+      return { plan: "Gratuito" };
     }
   },
 };

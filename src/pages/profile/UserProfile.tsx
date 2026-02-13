@@ -21,6 +21,7 @@ import { cpf as cpfValidator } from "cpf-cnpj-validator"
 import ChangePasswordForm from "@/components/forms/ChangePasswordForm"
 import { Skeleton } from "@/components/ui/skeleton"
 import { plansService } from "@/services/plansService"
+import { supabase } from "@/lib/supabase/client"
 
 export default function UserProfilePage() {
     const { user, refreshUser } = useAuth() // Podemos usar login ou checkUser se expormos algo para recarregar o usuario
@@ -65,6 +66,21 @@ export default function UserProfilePage() {
             }
         }
     }, [user, form])
+
+    const handleResume = async () => {
+        setIsLoading(true)
+
+        const { error } = await supabase.functions.invoke('resume-plan')
+
+        if (error) {
+            toast.error("Erro ao reativar: " + error.message)
+        } else {
+            window.location.reload()
+            toast.success("Assinatura Renovada! Obrigado por continuar conosco. 🚀")
+
+        }
+        setIsLoading(false)
+    }
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -789,11 +805,15 @@ export default function UserProfilePage() {
                             <div className="space-y-1">
                                 <h3 className="font-medium text-lg text-primary">{user?.plan || "Plano Gratuito"}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Gerencie sua assinatura e acesse recursos exclusivos.
+                                    {user?.plan && user.plan !== "Gratuito"
+                                        ? (user.subscription_cancel_at_period_end
+                                            ? `Cancelada (acesso até ${user.subscription_end_date ? new Date(user.subscription_end_date).toLocaleDateString('pt-BR') : 'o fim do período'})`
+                                            : "Assinatura Ativa")
+                                        : "Plano Gratuito"}
                                 </p>
                             </div>
                             <div className="flex justify-end gap-2">
-                                {user?.plan && user.plan !== "Gratuito" && (
+                                {user?.plan && user.plan !== "Gratuito" && !user.subscription_cancel_at_period_end && (
                                     <Button
                                         variant="outline"
                                         onClick={() => cancelSubscription()}
@@ -801,10 +821,16 @@ export default function UserProfilePage() {
                                         Cancelar Assinatura
                                     </Button>
                                 )}
+                                {user?.plan && user.plan !== "Gratuito" && user.subscription_cancel_at_period_end && (
+                                    <Button
+                                        onClick={() => handleResume()}
+                                    >
+                                        Reativar Assinatura
+                                    </Button>
+                                )}
                                 <Button
                                     onClick={() => navigate("/app/planos")}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0"
-                                >
+                                    variant={user.subscription_cancel_at_period_end ? "outline" : "default"}>
                                     {user?.plan && user.plan !== "Gratuito" ? "Gerenciar Assinatura" : "Fazer Upgrade"}
                                 </Button>
                             </div>
@@ -946,110 +972,116 @@ export default function UserProfilePage() {
 
 
             {/* DIALOG MFA ENROLLMENT */}
-            {isMfaModalOpen && mfaData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
-                        <CardHeader>
-                            <CardTitle>Configurar 2FA</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="flex flex-col items-center justify-center gap-4 p-4 bg-muted/30 rounded-lg">
-                                {mfaData.qr_code.startsWith('data:') ? (
-                                    <img src={mfaData.qr_code} alt="QR Code" className="w-48 h-48 rounded-md border bg-white p-2" />
-                                ) : (
-                                    <div
-                                        className="w-48 h-48 rounded-md border bg-white p-2 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                                        dangerouslySetInnerHTML={{ __html: mfaData.qr_code }}
-                                    />
-                                )}
-                                <div className="text-center space-y-1">
-                                    <p className="text-xs text-muted-foreground font-mono bg-muted p-1 rounded">
-                                        Secret: {mfaData.secret}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Escaneie com seu app autenticador (Google Authenticator, Authy, etc)
-                                    </p>
+            {
+                isMfaModalOpen && mfaData && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                            <CardHeader>
+                                <CardTitle>Configurar 2FA</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex flex-col items-center justify-center gap-4 p-4 bg-muted/30 rounded-lg">
+                                    {mfaData.qr_code.startsWith('data:') ? (
+                                        <img src={mfaData.qr_code} alt="QR Code" className="w-48 h-48 rounded-md border bg-white p-2" />
+                                    ) : (
+                                        <div
+                                            className="w-48 h-48 rounded-md border bg-white p-2 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                                            dangerouslySetInnerHTML={{ __html: mfaData.qr_code }}
+                                        />
+                                    )}
+                                    <div className="text-center space-y-1">
+                                        <p className="text-xs text-muted-foreground font-mono bg-muted p-1 rounded">
+                                            Secret: {mfaData.secret}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Escaneie com seu app autenticador (Google Authenticator, Authy, etc)
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label>Código de Verificação</Label>
-                                <Input
-                                    value={mfaCode}
-                                    onChange={(e) => setMfaCode(e.target.value)}
-                                    placeholder="000000"
-                                    className="text-center text-lg tracking-widest"
-                                    maxLength={6}
-                                />
-                            </div>
+                                <div className="space-y-2">
+                                    <Label>Código de Verificação</Label>
+                                    <Input
+                                        value={mfaCode}
+                                        onChange={(e) => setMfaCode(e.target.value)}
+                                        placeholder="000000"
+                                        className="text-center text-lg tracking-widest"
+                                        maxLength={6}
+                                    />
+                                </div>
 
-                            <div className="flex gap-2 justify-end">
-                                <Button variant="ghost" onClick={() => setIsMfaModalOpen(false)}>Cancelar</Button>
-                                <Button onClick={handleVerifyMfaDetails} disabled={mfaCode.length < 6 || isLoading}>
-                                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    Verificar e Ativar
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                                <div className="flex gap-2 justify-end">
+                                    <Button variant="ghost" onClick={() => setIsMfaModalOpen(false)}>Cancelar</Button>
+                                    <Button onClick={handleVerifyMfaDetails} disabled={mfaCode.length < 6 || isLoading}>
+                                        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        Verificar e Ativar
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
             {/* DIALOG CHANGE PASSWORD */}
-            {isChangePasswordOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
-                        <CardHeader>
-                            <CardTitle>Alterar Senha</CardTitle>
-                            <CardDescription>Digite sua nova senha abaixo.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ChangePasswordForm
-                                onSuccess={() => setIsChangePasswordOpen(false)}
-                                onCancel={() => setIsChangePasswordOpen(false)}
-                                onMfaRequired={() => {
-                                    setIsChangePasswordOpen(false)
-                                    setIsMfaVerificationOpen(true)
-                                }}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            {
+                isChangePasswordOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                            <CardHeader>
+                                <CardTitle>Alterar Senha</CardTitle>
+                                <CardDescription>Digite sua nova senha abaixo.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ChangePasswordForm
+                                    onSuccess={() => setIsChangePasswordOpen(false)}
+                                    onCancel={() => setIsChangePasswordOpen(false)}
+                                    onMfaRequired={() => {
+                                        setIsChangePasswordOpen(false)
+                                        setIsMfaVerificationOpen(true)
+                                    }}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
             {/* DIALOG MFA VERIFICATION (For AAL2 Upgrade) */}
-            {isMfaVerificationOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
-                        <CardHeader>
-                            <CardTitle>Verificação de Segurança</CardTitle>
-                            <CardDescription>Digite o código do seu autenticador para continuar.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Código de 6 dígitos</Label>
-                                <Input
-                                    value={mfaCode}
-                                    onChange={(e) => setMfaCode(e.target.value)}
-                                    placeholder="000000"
-                                    className="text-center text-lg tracking-widest"
-                                    maxLength={6}
-                                />
-                            </div>
-                            <div className="flex gap-2 justify-end">
-                                <Button variant="ghost" onClick={() => {
-                                    setIsMfaVerificationOpen(false)
-                                    setMfaCode("")
-                                }}>Cancelar</Button>
-                                <Button onClick={handleMfaVerification} disabled={mfaCode.length < 6 || isLoading}>
-                                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    Verificar
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+            {
+                isMfaVerificationOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <Card className="w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border-primary/20">
+                            <CardHeader>
+                                <CardTitle>Verificação de Segurança</CardTitle>
+                                <CardDescription>Digite o código do seu autenticador para continuar.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Código de 6 dígitos</Label>
+                                    <Input
+                                        value={mfaCode}
+                                        onChange={(e) => setMfaCode(e.target.value)}
+                                        placeholder="000000"
+                                        className="text-center text-lg tracking-widest"
+                                        maxLength={6}
+                                    />
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <Button variant="ghost" onClick={() => {
+                                        setIsMfaVerificationOpen(false)
+                                        setMfaCode("")
+                                    }}>Cancelar</Button>
+                                    <Button onClick={handleMfaVerification} disabled={mfaCode.length < 6 || isLoading}>
+                                        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        Verificar
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
 
         </DashboardLayout >
     )

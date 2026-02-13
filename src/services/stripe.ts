@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import { supabase } from "../lib/supabase/client";
 
 export async function checkout(priceId: string) {
